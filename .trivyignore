@@ -1,0 +1,11 @@
+# Trivy suppressions — only for CVEs where the fix isn't actually available
+# upstream. Each entry must come with a justification so a reviewer can tell
+# the difference between "accepted risk" and "hiding the problem".
+
+# CVE-2025-69720 — ncurses buffer overflow.
+# Affects: libtinfo6, ncurses-base, ncurses-bin (Debian 13 / python:3.12-slim).
+# Status: "affected" — Debian has not released a patched version yet.
+# Risk: low for this app — the ncurses library is not exposed to untrusted
+# input in the data-quality runner (no terminal UI in production).
+# Revisit when: Debian publishes a fix in trixie security updates.
+CVE-2025-69720

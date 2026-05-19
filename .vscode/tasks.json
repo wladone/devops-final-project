@@ -1,0 +1,260 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Check Prerequisites",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/check_prereqs.ps1"
+      ]
+    },
+    {
+      "label": "Install Dependencies",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/setup_venv.ps1"
+      ]
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/run_tests.ps1"
+      ],
+      "group": "test"
+    },
+    {
+      "label": "Run Data Quality Pipeline",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/run_pipeline.ps1"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "Run Dashboard",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/run_dashboard.ps1"
+      ]
+    },
+    {
+      "label": "Docker Compose Up",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/run_docker.ps1"
+      ]
+    },
+    {
+      "label": "Start Local Jenkins",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/jenkins/start.ps1"
+      ]
+    },
+    {
+      "label": "Stop Local Jenkins",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/jenkins/stop.ps1"
+      ]
+    },
+    {
+      "label": "Jenkins Logs",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/jenkins/logs.ps1"
+      ]
+    },
+    {
+      "label": "Create Jenkins Job",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/jenkins/create_job.ps1"
+      ]
+    },
+    {
+      "label": "Build Jenkins Job",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/jenkins/build_job.ps1"
+      ]
+    },
+    {
+      "label": "Validate Ansible Playbook",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/ansible/validate.ps1"
+      ]
+    },
+    {
+      "label": "Start DevOps Lab",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/lab/start.ps1"
+      ]
+    },
+    {
+      "label": "Stop DevOps Lab",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/lab/stop.ps1"
+      ]
+    },
+    {
+      "label": "DevOps Lab Status",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/lab/status.ps1"
+      ]
+    },
+    {
+      "label": "Run Ansible Delivery Demo",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/lab/run_ansible_demo.ps1"
+      ]
+    },
+    {
+      "label": "Validate Terraform Scaffold",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/terraform/validate.ps1"
+      ]
+    },
+    {
+      "label": "Install Host DevOps Tools",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/install_host_tools.ps1"
+      ]
+    },
+    {
+      "label": "Create kind Cluster",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/kind/create_cluster.ps1"
+      ]
+    },
+    {
+      "label": "Start Local GitOps Repo",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/gitops/start.ps1"
+      ]
+    },
+    {
+      "label": "Bootstrap Local GitOps Repo",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/gitops/bootstrap_local_repo.ps1"
+      ]
+    },
+    {
+      "label": "Install Argo CD In Cluster",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/gitops/install_argocd.ps1"
+      ]
+    },
+    {
+      "label": "Bootstrap GitOps App",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/gitops/bootstrap_app.ps1"
+      ]
+    }
+  ]
+}

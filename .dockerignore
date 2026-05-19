@@ -1,0 +1,25 @@
+.git
+.venv
+.pytest_cache
+.mypy_cache
+.tmp
+logs
+htmlcov
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+data/stress
+data/processed/quality_ladder
+reports/latest
+reports/ci
+reports/stress
+reports/stress-ci-check
+reports/quality-ladder
+reports/quality-ladder-data
+reports/quality-ladder-ci-check
+# Exclude Terraform local state from the image — it can be large and the
+# dashboard only needs the .tf files to evidence the IaC layer.
+terraform/**/.terraform
+terraform/**/.terraform.lock.hcl
+terraform/**/terraform.tfstate*

@@ -1,0 +1,8 @@
+pandas==2.2.3
+openpyxl==3.1.5
+PyYAML==6.0.2
+# Streamlit 1.43 pinned Pillow<12 which kept CVE-2026-25990/40192/42311 alive.
+# 1.51 supports Pillow >=12.2, closing all three.
+streamlit==1.51.0
+pillow>=12.2.0
+

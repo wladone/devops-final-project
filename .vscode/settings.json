@@ -1,0 +1,22 @@
+{
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  "python.analysis.extraPaths": [
+    "src"
+  ],
+  "files.associations": {
+    "Jenkinsfile": "groovy",
+    "*.tpl": "helm",
+    "Chart.yaml": "yaml"
+  },
+  "yaml.schemas": {
+    "https://json.schemastore.org/kubernetes.json": [
+      "helm/**/*.yaml",
+      "argocd/*.yaml",
+      "monitoring/prometheus/**/*.yaml",
+      "security/policies/*.yaml"
+    ]
+  }
+}

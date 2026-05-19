@@ -1,0 +1,18 @@
+[theme]
+# Force a light theme so the Control Tower's light card design is consistent
+# regardless of the viewer's OS dark-mode preference.
+base = "light"
+primaryColor = "#0f6fff"
+backgroundColor = "#f5f7fb"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#10243e"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
+
+[client]
+toolbarMode = "minimal"
