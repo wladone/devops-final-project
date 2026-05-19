@@ -1,0 +1,470 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'FULL_JOB_NAME', defaultValue: 'data-quality-monitor-full', description: 'Jenkins job name used for quality and security')
+        string(name: 'DELIVERY_JOB_NAME', defaultValue: 'data-quality-monitor-delivery', description: 'Jenkins job name used for deploy and GitOps delivery')
+        string(name: 'FULL_PROJECT_DIR', defaultValue: '/workspace/data-quality-monitor', description: 'Mounted project path used by the full sub-job')
+        string(name: 'DELIVERY_PROJECT_DIR', defaultValue: '/workspace/data-quality-monitor/.tmp/jenkins-gitops-source', description: 'Mounted GitOps worktree path used by the delivery sub-job')
+        string(name: 'REGISTRY_IMAGE', defaultValue: 'localhost:5001/data-quality-monitor', description: 'Image repository used by both sub-jobs')
+        string(name: 'SONAR_PROJECT_KEY', defaultValue: 'data-quality-monitor', description: 'SonarQube project key to verify')
+        string(name: 'SONAR_TOKEN_CREDENTIALS_ID', defaultValue: 'sonar-local-token', description: 'Jenkins credentials ID for the SonarQube token')
+        string(name: 'ARGOCD_APP_NAME', defaultValue: 'data-quality-monitor-kind', description: 'Argo CD application name to verify')
+        string(name: 'ARGOCD_NAMESPACE', defaultValue: 'argocd', description: 'Namespace that contains the Argo CD Application')
+        string(name: 'K8S_NAMESPACE', defaultValue: 'dq-monitor-dev', description: 'Kubernetes namespace used by the demo app')
+        string(name: 'K8S_RUNNER_CRONJOB', defaultValue: 'data-quality-monitor-data-quality-monitor-runner', description: 'CronJob name used for manual Kubernetes data-quality runs')
+        string(name: 'K8S_DASHBOARD_RESOURCE', defaultValue: 'svc/data-quality-monitor-data-quality-monitor-dashboard', description: 'Kubernetes dashboard service/resource used for smoke testing')
+        string(name: 'PUBLIC_JENKINS_BASE_URL', defaultValue: 'http://localhost:8080', description: 'User-facing Jenkins base URL used in demo links')
+        string(name: 'PUBLIC_SONAR_URL', defaultValue: 'http://localhost:9000', description: 'User-facing SonarQube URL used in demo links')
+        string(name: 'PUBLIC_ARGOCD_URL', defaultValue: 'https://127.0.0.1:28080', description: 'User-facing Argo CD URL used in demo links')
+        string(name: 'PUBLIC_GRAFANA_URL', defaultValue: 'http://localhost:3000', description: 'User-facing Grafana URL used in demo links')
+        string(name: 'PUBLIC_PROMETHEUS_URL', defaultValue: 'http://localhost:9090', description: 'User-facing Prometheus URL used in demo links')
+        string(name: 'PUBLIC_CLASSIC_DASHBOARD_URL', defaultValue: 'http://localhost:18501', description: 'User-facing classic dashboard URL used in demo links')
+        string(name: 'PUBLIC_K8S_DASHBOARD_URL', defaultValue: 'http://127.0.0.1:28501', description: 'User-facing Kubernetes dashboard URL used in demo links')
+        string(name: 'INTERNAL_REGISTRY_BASE_URL', defaultValue: 'http://host.docker.internal:5001', description: 'Registry URL reachable from inside the Jenkins container')
+        string(name: 'INTERNAL_SONAR_URL', defaultValue: 'http://sonarqube:9000', description: 'SonarQube URL reachable from inside the Jenkins container')
+        string(name: 'INTERNAL_CLASSIC_DASHBOARD_URL', defaultValue: 'http://host.docker.internal:18501', description: 'Classic dashboard URL reachable from inside the Jenkins container')
+        string(name: 'INTERNAL_K8S_DASHBOARD_URL', defaultValue: 'http://host.docker.internal:28501', description: 'Kubernetes dashboard URL reachable from inside the Jenkins container')
+        string(name: 'INTERNAL_GRAFANA_URL', defaultValue: 'http://host.docker.internal:3000', description: 'Grafana URL reachable from inside the Jenkins container')
+        string(name: 'INTERNAL_PROMETHEUS_READY_URL', defaultValue: 'http://host.docker.internal:9090/-/ready', description: 'Prometheus readiness URL reachable from inside the Jenkins container')
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        FULL_BUILD_NUMBER = ''
+        DELIVERY_BUILD_NUMBER = ''
+        FULL_BUILD_URL = ''
+        DELIVERY_BUILD_URL = ''
+        IMAGE_TAG = ''
+        REGISTRY_REPOSITORY_PATH = ''
+    }
+
+    stages {
+        stage('Bootstrap Platform') {
+            steps {
+                script {
+                    def imageRef = params.REGISTRY_IMAGE?.trim()
+                    if (!imageRef) {
+                        error('REGISTRY_IMAGE is required for the demo orchestrator.')
+                    }
+
+                    def slashIndex = imageRef.indexOf('/')
+                    env.REGISTRY_REPOSITORY_PATH = slashIndex >= 0 ? imageRef.substring(slashIndex + 1) : imageRef
+                    currentBuild.description = 'Bootstrapping local DevOps demo'
+                }
+                sh '''
+                    set -eu
+                    test -f "$FULL_PROJECT_DIR/Jenkinsfile"
+                    test -d "$DELIVERY_PROJECT_DIR/.git"
+                    curl -fsSI "$INTERNAL_SONAR_URL" >/dev/null
+                    curl -fsSI "$INTERNAL_GRAFANA_URL" >/dev/null
+                    curl -fsS "$INTERNAL_PROMETHEUS_READY_URL" | grep -q "Ready"
+                '''
+            }
+        }
+
+        stage('Run Quality & Security') {
+            steps {
+                script {
+                    def demoImageTag = "e2e-${env.BUILD_NUMBER}"
+                    def fullBuild = build(
+                        job: params.FULL_JOB_NAME,
+                        wait: true,
+                        propagate: false,
+                        parameters: [
+                            string(name: 'PROJECT_DIR', value: params.FULL_PROJECT_DIR),
+                            string(name: 'INPUT_FILE', value: 'data/raw/psq_customer_base_v8_stress.csv'),
+                            string(name: 'RULES_FILE', value: 'config/rules.yml'),
+                            string(name: 'OUTPUT_DIR', value: 'reports/ci'),
+                            booleanParam(name: 'SKIP_CHECKOUT', value: true),
+                            booleanParam(name: 'RUN_UNIT_TESTS', value: true),
+                            booleanParam(name: 'RUN_SONAR_SCAN', value: true),
+                            string(name: 'SONAR_HOST_URL', value: params.INTERNAL_SONAR_URL),
+                            string(name: 'SONAR_TOKEN_CREDENTIALS_ID', value: params.SONAR_TOKEN_CREDENTIALS_ID),
+                            booleanParam(name: 'RUN_DATA_QUALITY_JOB', value: true),
+                            booleanParam(name: 'RUN_HELM_VALIDATION', value: true),
+                            string(name: 'HELM_VALUES_FILE', value: 'helm/data-quality-monitor/values-kind-full.yaml'),
+                            string(name: 'HELM_RELEASE_NAME', value: 'data-quality-monitor'),
+                            string(name: 'HELM_NAMESPACE', value: params.K8S_NAMESPACE),
+                            string(name: 'K8S_NAMESPACE', value: params.K8S_NAMESPACE),
+                            string(name: 'K8S_RUNNER_CRONJOB', value: params.K8S_RUNNER_CRONJOB),
+                            string(name: 'K8S_DASHBOARD_RESOURCE', value: params.K8S_DASHBOARD_RESOURCE),
+                            booleanParam(name: 'RUN_TERRAFORM_VALIDATE', value: true),
+                            string(name: 'TERRAFORM_ENVIRONMENTS', value: 'dev staging prod'),
+                            string(name: 'REGISTRY_IMAGE', value: params.REGISTRY_IMAGE),
+                            string(name: 'IMAGE_TAG_OVERRIDE', value: demoImageTag),
+                            string(name: 'REGISTRY_CREDENTIALS_ID', value: ''),
+                            booleanParam(name: 'RUN_DOCKER_BUILD', value: true),
+                            booleanParam(name: 'RUN_SECURITY_SCAN', value: true),
+                            booleanParam(name: 'RUN_DOCKER_PUBLISH', value: true),
+                            booleanParam(name: 'RUN_DEPLOY', value: false),
+                            string(name: 'INVENTORY_PATH', value: 'ansible/inventory.ini'),
+                            string(name: 'SSH_CREDENTIALS_ID', value: ''),
+                            string(name: 'ANSIBLE_EXTRA_VARS', value: ''),
+                            booleanParam(name: 'RUN_GITOPS_UPDATE', value: false),
+                            string(name: 'GITOPS_VALUES_FILE', value: 'helm/data-quality-monitor/values-kind-full.yaml'),
+                            string(name: 'GITOPS_TARGET_BRANCH', value: 'main'),
+                            string(name: 'GITOPS_PUSH_REMOTE', value: 'origin'),
+                            string(name: 'GITOPS_PUSH_CREDENTIALS_ID', value: ''),
+                            string(name: 'GIT_USER_NAME', value: 'jenkins-bot'),
+                            string(name: 'GIT_USER_EMAIL', value: 'jenkins@example.local'),
+                            booleanParam(name: 'RUN_ARGOCD_SYNC', value: false),
+                            string(name: 'ARGOCD_APP_NAME', value: params.ARGOCD_APP_NAME),
+                            string(name: 'ARGOCD_SYNC_MODE', value: 'core'),
+                            string(name: 'ARGOCD_NAMESPACE', value: params.ARGOCD_NAMESPACE),
+                            string(name: 'ARGOCD_SERVER', value: ''),
+                            string(name: 'ARGOCD_AUTH_TOKEN_CREDENTIALS_ID', value: ''),
+                            string(name: 'DASHBOARD_URL', value: ''),
+                            string(name: 'K8S_DASHBOARD_URL', value: '')
+                        ]
+                    )
+
+                    def fullBuildNumber = "${fullBuild.getNumber()}"
+                    def fullBuildUrlValue = "${fullBuild.absoluteUrl ?: ''}".trim()
+                    if (fullBuildUrlValue.toLowerCase() in ['', 'null', 'none']) {
+                        fullBuildUrlValue = "${params.PUBLIC_JENKINS_BASE_URL}/job/${params.FULL_JOB_NAME}/${fullBuildNumber}/"
+                    }
+                    env.FULL_BUILD_NUMBER = fullBuildNumber
+                    env.IMAGE_TAG = demoImageTag
+                    env.FULL_BUILD_URL = fullBuildUrlValue
+                    writeFile file: 'demo-full-build.properties', text: [
+                        "FULL_BUILD_NUMBER=${fullBuildNumber}",
+                        "FULL_BUILD_URL=${fullBuildUrlValue}",
+                        "IMAGE_TAG=${demoImageTag}"
+                    ].join('\n') + '\n'
+
+                    if (fullBuild.result != 'SUCCESS') {
+                        error("Full sub-job finished with result ${fullBuild.result}.")
+                    }
+                }
+            }
+        }
+
+        stage('Verify SonarQube') {
+            steps {
+                withCredentials([string(credentialsId: params.SONAR_TOKEN_CREDENTIALS_ID, variable: 'SONAR_TOKEN')]) {
+                    withEnv([
+                        "INTERNAL_SONAR_URL=${params.INTERNAL_SONAR_URL}",
+                        "SONAR_PROJECT_KEY=${params.SONAR_PROJECT_KEY}"
+                    ]) {
+                        sh '''
+                            python3 - <<'PY'
+import base64
+import json
+import os
+import urllib.request
+
+base_url = os.environ["INTERNAL_SONAR_URL"].rstrip("/")
+project_key = os.environ["SONAR_PROJECT_KEY"]
+token = os.environ["SONAR_TOKEN"]
+
+request = urllib.request.Request(
+    f"{base_url}/api/project_analyses/search?project={project_key}"
+)
+auth_value = base64.b64encode(f"{token}:".encode("utf-8")).decode("ascii")
+request.add_header("Authorization", f"Basic {auth_value}")
+
+with urllib.request.urlopen(request, timeout=30) as response:
+    payload = json.load(response)
+
+analyses = payload.get("analyses", [])
+assert analyses, f"No SonarQube analyses found for {project_key}"
+print(f"Found {len(analyses)} SonarQube analyses for {project_key}.")
+PY
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Verify Image Publish') {
+            steps {
+                withEnv([
+                    "INTERNAL_REGISTRY_BASE_URL=${params.INTERNAL_REGISTRY_BASE_URL}",
+                    "REGISTRY_IMAGE=${params.REGISTRY_IMAGE}",
+                    "REGISTRY_REPOSITORY_PATH=${env.REGISTRY_REPOSITORY_PATH}",
+                    "FULL_BUILD_NUMBER=${env.FULL_BUILD_NUMBER}",
+                    "IMAGE_TAG=e2e-${env.BUILD_NUMBER}"
+                ]) {
+                    sh '''
+                        python3 - <<'PY'
+import json
+import os
+import urllib.request
+
+base_url = os.environ["INTERNAL_REGISTRY_BASE_URL"].rstrip("/")
+registry_image = os.environ["REGISTRY_IMAGE"].strip()
+repository_path = os.environ.get("REGISTRY_REPOSITORY_PATH", "").strip()
+image_tag = os.environ["IMAGE_TAG"]
+
+if repository_path.lower() in ("", "null", "none"):
+    repository_path = registry_image.split("/", 1)[1] if "/" in registry_image else registry_image
+
+if image_tag.lower() in ("", "null", "none"):
+    image_tag = os.environ.get("FULL_BUILD_NUMBER", "").strip()
+
+assert image_tag.lower() not in ("", "null", "none"), "No image tag was captured from the full sub-job."
+
+tags_url = f"{base_url}/v2/{repository_path}/tags/list"
+print(f"Checking registry tags at {tags_url}")
+
+with urllib.request.urlopen(tags_url, timeout=30) as response:
+    payload = json.load(response)
+
+tags = payload.get("tags", []) or []
+assert image_tag in tags, f"Image tag {image_tag} was not found in {repository_path}. Available tags: {tags}"
+print(f"Verified published image {repository_path}:{image_tag}")
+PY
+                    '''
+                }
+            }
+        }
+
+        stage('Run Delivery') {
+            steps {
+                script {
+                    def demoImageTag = "e2e-${env.BUILD_NUMBER}"
+                    def deliveryBuild = build(
+                        job: params.DELIVERY_JOB_NAME,
+                        wait: true,
+                        propagate: false,
+                        parameters: [
+                            string(name: 'PROJECT_DIR', value: params.DELIVERY_PROJECT_DIR),
+                            string(name: 'INPUT_FILE', value: 'data/raw/psq_customer_base_v8_stress.csv'),
+                            string(name: 'RULES_FILE', value: 'config/rules.yml'),
+                            string(name: 'OUTPUT_DIR', value: 'reports/ci'),
+                            booleanParam(name: 'SKIP_CHECKOUT', value: true),
+                            booleanParam(name: 'RUN_UNIT_TESTS', value: false),
+                            booleanParam(name: 'RUN_SONAR_SCAN', value: false),
+                            string(name: 'SONAR_HOST_URL', value: ''),
+                            string(name: 'SONAR_TOKEN_CREDENTIALS_ID', value: ''),
+                            booleanParam(name: 'RUN_DATA_QUALITY_JOB', value: false),
+                            booleanParam(name: 'RUN_HELM_VALIDATION', value: false),
+                            string(name: 'HELM_VALUES_FILE', value: 'helm/data-quality-monitor/values-kind-full.yaml'),
+                            string(name: 'HELM_RELEASE_NAME', value: 'data-quality-monitor'),
+                            string(name: 'HELM_NAMESPACE', value: params.K8S_NAMESPACE),
+                            string(name: 'K8S_NAMESPACE', value: params.K8S_NAMESPACE),
+                            string(name: 'K8S_RUNNER_CRONJOB', value: params.K8S_RUNNER_CRONJOB),
+                            string(name: 'K8S_DASHBOARD_RESOURCE', value: params.K8S_DASHBOARD_RESOURCE),
+                            booleanParam(name: 'RUN_TERRAFORM_VALIDATE', value: false),
+                            string(name: 'TERRAFORM_ENVIRONMENTS', value: 'dev staging prod'),
+                            string(name: 'REGISTRY_IMAGE', value: params.REGISTRY_IMAGE),
+                            string(name: 'IMAGE_TAG_OVERRIDE', value: demoImageTag),
+                            string(name: 'REGISTRY_CREDENTIALS_ID', value: ''),
+                            booleanParam(name: 'RUN_DOCKER_BUILD', value: false),
+                            booleanParam(name: 'RUN_SECURITY_SCAN', value: false),
+                            booleanParam(name: 'RUN_DOCKER_PUBLISH', value: false),
+                            booleanParam(name: 'RUN_DEPLOY', value: true),
+                            string(name: 'INVENTORY_PATH', value: 'lab/ansible/inventory.ini'),
+                            string(name: 'SSH_CREDENTIALS_ID', value: ''),
+                            string(name: 'ANSIBLE_EXTRA_VARS', value: 'docker_runtime_manage_engine=false dashboard_port=18501 dashboard_healthcheck_url=http://host.docker.internal:18501'),
+                            booleanParam(name: 'RUN_GITOPS_UPDATE', value: true),
+                            string(name: 'GITOPS_VALUES_FILE', value: 'helm/data-quality-monitor/values-kind-full.yaml'),
+                            string(name: 'GITOPS_TARGET_BRANCH', value: 'main'),
+                            string(name: 'GITOPS_PUSH_REMOTE', value: 'origin'),
+                            string(name: 'GITOPS_PUSH_CREDENTIALS_ID', value: ''),
+                            string(name: 'GIT_USER_NAME', value: 'jenkins-bot'),
+                            string(name: 'GIT_USER_EMAIL', value: 'jenkins@example.local'),
+                            booleanParam(name: 'RUN_ARGOCD_SYNC', value: true),
+                            string(name: 'ARGOCD_APP_NAME', value: params.ARGOCD_APP_NAME),
+                            string(name: 'ARGOCD_SYNC_MODE', value: 'core'),
+                            string(name: 'ARGOCD_NAMESPACE', value: params.ARGOCD_NAMESPACE),
+                            string(name: 'ARGOCD_SERVER', value: ''),
+                            string(name: 'ARGOCD_AUTH_TOKEN_CREDENTIALS_ID', value: ''),
+                            string(name: 'DASHBOARD_URL', value: params.INTERNAL_CLASSIC_DASHBOARD_URL),
+                            string(name: 'K8S_DASHBOARD_URL', value: params.INTERNAL_K8S_DASHBOARD_URL)
+                        ]
+                    )
+
+                    def deliveryBuildNumber = "${deliveryBuild.getNumber()}"
+                    def deliveryBuildUrlValue = "${deliveryBuild.absoluteUrl ?: ''}".trim()
+                    if (deliveryBuildUrlValue.toLowerCase() in ['', 'null', 'none']) {
+                        deliveryBuildUrlValue = "${params.PUBLIC_JENKINS_BASE_URL}/job/${params.DELIVERY_JOB_NAME}/${deliveryBuildNumber}/"
+                    }
+                    env.DELIVERY_BUILD_NUMBER = deliveryBuildNumber
+                    env.DELIVERY_BUILD_URL = deliveryBuildUrlValue
+                    writeFile file: 'demo-delivery-build.properties', text: [
+                        "DELIVERY_BUILD_NUMBER=${deliveryBuildNumber}",
+                        "DELIVERY_BUILD_URL=${deliveryBuildUrlValue}",
+                        "IMAGE_TAG=${demoImageTag}"
+                    ].join('\n') + '\n'
+
+                    if (deliveryBuild.result != 'SUCCESS') {
+                        error("Delivery sub-job finished with result ${deliveryBuild.result}.")
+                    }
+                }
+            }
+        }
+
+        stage('Verify Classic Deploy') {
+            steps {
+                sh '''
+                    curl -fsSI "$INTERNAL_CLASSIC_DASHBOARD_URL" >/dev/null
+                '''
+            }
+        }
+
+        stage('Verify GitOps / Argo CD') {
+            steps {
+                withEnv([
+                    "ARGOCD_APP_NAME=${params.ARGOCD_APP_NAME}",
+                    "ARGOCD_NAMESPACE=${params.ARGOCD_NAMESPACE}"
+                ]) {
+                    sh '''
+                        python3 - <<'PY'
+import json
+import os
+import subprocess
+import sys
+import time
+
+app_name = os.environ["ARGOCD_APP_NAME"]
+namespace = os.environ["ARGOCD_NAMESPACE"]
+deadline = time.time() + 180
+last_sync_status = None
+last_health_status = None
+
+while time.time() < deadline:
+    result = subprocess.run(
+        ["kubectl", "get", "application", app_name, "-n", namespace, "-o", "json"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    payload = json.loads(result.stdout)
+    last_sync_status = ((payload.get("status") or {}).get("sync") or {}).get("status")
+    last_health_status = ((payload.get("status") or {}).get("health") or {}).get("status")
+    print(f"Argo CD status: sync={last_sync_status}, health={last_health_status}")
+
+    if last_sync_status == "Synced" and last_health_status == "Healthy":
+        print("Argo CD application is Synced and Healthy.")
+        sys.exit(0)
+
+    time.sleep(5)
+
+raise AssertionError(f"Expected Synced/Healthy, got {last_sync_status}/{last_health_status}")
+PY
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Kubernetes App') {
+            steps {
+                sh '''
+                    set -eu
+                    kubectl -n "$K8S_NAMESPACE" port-forward "$K8S_DASHBOARD_RESOURCE" 18052:8501 >/tmp/orchestrator-k8s-port-forward.log 2>&1 &
+                    port_forward_pid="$!"
+                    cleanup() {
+                      kill "$port_forward_pid" >/dev/null 2>&1 || true
+                      wait "$port_forward_pid" >/dev/null 2>&1 || true
+                    }
+                    trap cleanup EXIT
+
+                    for _ in $(seq 1 60); do
+                      if curl -fsS "http://127.0.0.1:18052" >/dev/null 2>&1; then
+                        echo "Kubernetes dashboard smoke test passed."
+                        exit 0
+                      fi
+                      sleep 2
+                    done
+
+                    echo "Kubernetes dashboard smoke test failed." >&2
+                    cat /tmp/orchestrator-k8s-port-forward.log >&2 || true
+                    exit 1
+                '''
+            }
+        }
+
+        stage('Verify Monitoring') {
+            steps {
+                sh '''
+                    curl -fsSI "$INTERNAL_GRAFANA_URL" >/dev/null
+                    curl -fsS "$INTERNAL_PROMETHEUS_READY_URL" | grep -q "Ready"
+                '''
+            }
+        }
+
+        stage('Publish Demo Links') {
+            steps {
+                script {
+                    def readDemoProperties = { String path ->
+                        def values = [:]
+                        if (fileExists(path)) {
+                            readFile(path).split('\n').each { line ->
+                                def trimmed = line.trim()
+                                if (trimmed && trimmed.contains('=')) {
+                                    def parts = trimmed.split('=', 2)
+                                    values[parts[0]] = parts[1]
+                                }
+                            }
+                        }
+                        return values
+                    }
+
+                    def fullState = readDemoProperties('demo-full-build.properties')
+                    def deliveryState = readDemoProperties('demo-delivery-build.properties')
+                    def safeValue = { value ->
+                        def normalized = "${value ?: ''}".trim()
+                        return (normalized.toLowerCase() in ['', 'null', 'none']) ? '' : normalized
+                    }
+
+                    def demoImageTag = safeValue(fullState.IMAGE_TAG) ?: "e2e-${env.BUILD_NUMBER}"
+                    def fullBuildNumber = safeValue(fullState.FULL_BUILD_NUMBER) ?: safeValue(env.FULL_BUILD_NUMBER)
+                    def deliveryBuildNumber = safeValue(deliveryState.DELIVERY_BUILD_NUMBER) ?: safeValue(env.DELIVERY_BUILD_NUMBER)
+                    def fullBuildUrl = safeValue(fullState.FULL_BUILD_URL) ?: safeValue(env.FULL_BUILD_URL) ?: "${params.PUBLIC_JENKINS_BASE_URL}/job/${params.FULL_JOB_NAME}/${fullBuildNumber}/"
+                    def deliveryBuildUrl = safeValue(deliveryState.DELIVERY_BUILD_URL) ?: safeValue(env.DELIVERY_BUILD_URL) ?: "${params.PUBLIC_JENKINS_BASE_URL}/job/${params.DELIVERY_JOB_NAME}/${deliveryBuildNumber}/"
+                    def orchestratorUrl = env.BUILD_URL ?: "${params.PUBLIC_JENKINS_BASE_URL}/job/data-quality-monitor-demo-e2e/${env.BUILD_NUMBER}/"
+                    def linksMarkdown = [
+                        '# Demo Links',
+                        '',
+                        "- Orchestrator job: ${orchestratorUrl}",
+                        "- Full sub-job: ${fullBuildUrl}",
+                        "- Delivery sub-job: ${deliveryBuildUrl}",
+                        "- SonarQube: ${params.PUBLIC_SONAR_URL}",
+                        "- Argo CD: ${params.PUBLIC_ARGOCD_URL}",
+                        "- Grafana: ${params.PUBLIC_GRAFANA_URL}",
+                        "- Prometheus: ${params.PUBLIC_PROMETHEUS_URL}",
+                        "- Classic dashboard: ${params.PUBLIC_CLASSIC_DASHBOARD_URL}",
+                        "- Kubernetes dashboard: ${params.PUBLIC_K8S_DASHBOARD_URL}",
+                        '',
+                        "Image tag used: ${demoImageTag}"
+                    ].join('\n') + '\n'
+
+                    def summary = [
+                        orchestratorJobUrl     : orchestratorUrl,
+                        fullJobUrl             : fullBuildUrl,
+                        deliveryJobUrl         : deliveryBuildUrl,
+                        fullBuildNumber        : fullBuildNumber,
+                        deliveryBuildNumber    : deliveryBuildNumber,
+                        imageTag               : demoImageTag,
+                        registryImage          : params.REGISTRY_IMAGE,
+                        publicUrls             : [
+                            sonarQube          : params.PUBLIC_SONAR_URL,
+                            argoCd             : params.PUBLIC_ARGOCD_URL,
+                            grafana            : params.PUBLIC_GRAFANA_URL,
+                            prometheus         : params.PUBLIC_PROMETHEUS_URL,
+                            classicDashboard   : params.PUBLIC_CLASSIC_DASHBOARD_URL,
+                            kubernetesDashboard: params.PUBLIC_K8S_DASHBOARD_URL
+                        ],
+                        argocdApplication      : [
+                            name      : params.ARGOCD_APP_NAME,
+                            namespace : params.ARGOCD_NAMESPACE,
+                            syncStatus: 'Synced',
+                            healthStatus: 'Healthy'
+                        ]
+                    ]
+
+                    writeFile file: 'demo-links.md', text: linksMarkdown
+                    writeFile file: 'demo-summary.json', text: groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(summary))
+                    currentBuild.description = "SUCCESS | full #${fullBuildNumber} | delivery #${deliveryBuildNumber}"
+                }
+                archiveArtifacts artifacts: 'demo-links.md,demo-summary.json,demo-full-build.properties,demo-delivery-build.properties', fingerprint: true
+            }
+        }
+    }
+}

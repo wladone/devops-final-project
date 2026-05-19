@@ -1,0 +1,124 @@
+// Negative-path smoke tests for the CI gates.
+//
+// Goal: every external-service failure must surface as a fast, readable error.
+// We invoke each CI script with a bad input on purpose and assert it exits non-zero.
+// If a future change makes a gate hang instead of failing, this job catches it.
+//
+// Intentionally separate from the main Jenkinsfile so a real CI run does not
+// pay this overhead; recommended schedule is nightly via the H H(2-5) cron block.
+
+pipeline {
+    agent any
+
+    triggers {
+        // Nightly between 02:00-05:00 local time so it does not collide with on-demand demo runs.
+        cron('H H(2-5) * * *')
+    }
+
+    options {
+        timestamps()
+        timeout(time: 10, unit: 'MINUTES')
+    }
+
+    parameters {
+        string(name: 'PROJECT_DIR', defaultValue: '/workspace/data-quality-monitor', description: 'Mounted project path on the Jenkins agent')
+    }
+
+    stages {
+        stage('Sonar fail-fast on unreachable host') {
+            steps {
+                script {
+                    def exitCode = sh(
+                        returnStatus: true,
+                        script: '''
+                            cd "$PROJECT_DIR"
+                            export SONAR_HOST_URL="http://this-host-does-not-exist.invalid:9000"
+                            export SONAR_TOKEN="dummy"
+                            export SONAR_CLEAN_SCAN="false"
+                            timeout 120 ./scripts/ci/run_sonar_scan.sh || exit $?
+                        '''
+                    )
+                    if (exitCode == 0) {
+                        error 'Sonar scan unexpectedly succeeded against an unreachable host. The gate is not firing.'
+                    }
+                    if (exitCode == 124) {
+                        error 'Sonar scan hung past the 120s timeout against an unreachable host. The gate is not failing fast.'
+                    }
+                    echo "Sonar fail-fast OK (exit=${exitCode})"
+                }
+            }
+        }
+
+        stage('Sonar fail-fast on missing credentials') {
+            steps {
+                script {
+                    def exitCode = sh(
+                        returnStatus: true,
+                        script: '''
+                            cd "$PROJECT_DIR"
+                            unset SONAR_HOST_URL SONAR_TOKEN
+                            ./scripts/ci/run_sonar_scan.sh
+                        '''
+                    )
+                    if (exitCode == 0) {
+                        error 'Sonar scan unexpectedly succeeded with no credentials configured.'
+                    }
+                    echo "Sonar credential-check OK (exit=${exitCode})"
+                }
+            }
+        }
+
+        stage('Trivy fail-fast on non-existent image') {
+            steps {
+                script {
+                    def exitCode = sh(
+                        returnStatus: true,
+                        script: '''
+                            cd "$PROJECT_DIR"
+                            export TRIVY_ALLOW_FINDINGS=false
+                            export TRIVY_SEVERITY=HIGH,CRITICAL
+                            timeout 180 ./scripts/ci/run_trivy_scan.sh . "this-image-definitely-does-not-exist:nonsense" || exit $?
+                        '''
+                    )
+                    if (exitCode == 0) {
+                        error 'Trivy unexpectedly returned success for a non-existent image.'
+                    }
+                    if (exitCode == 124) {
+                        error 'Trivy hung past 180s against a non-existent image; expected fast failure.'
+                    }
+                    echo "Trivy fail-fast OK (exit=${exitCode})"
+                }
+            }
+        }
+
+        stage('Helm matrix fail-fast on broken values') {
+            steps {
+                script {
+                    def exitCode = sh(
+                        returnStatus: true,
+                        script: '''
+                            set -eu
+                            cd "$PROJECT_DIR"
+                            tmpvalues="$(mktemp -d)"
+                            trap 'rm -rf "$tmpvalues"' EXIT
+                            # Un-parseable YAML: unmatched bracket. Helm should reject at parse time,
+                            # before any coalescing happens.
+                            printf 'image:\n  tag: "unclosed-string\n  repository: [broken\n' > "$tmpvalues/values-broken.yaml"
+                            ./scripts/ci/render_helm_chart.sh helm/data-quality-monitor "$tmpvalues/values-broken.yaml" data-quality-monitor dq-monitor-dev
+                        '''
+                    )
+                    if (exitCode == 0) {
+                        error 'Helm render unexpectedly succeeded against deliberately broken values.'
+                    }
+                    echo "Helm broken-values OK (exit=${exitCode})"
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo 'A negative-path test did not fail when it should have. Investigate before relying on the gate.'
+        }
+    }
+}
