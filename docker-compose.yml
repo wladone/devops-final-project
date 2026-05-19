@@ -1,0 +1,34 @@
+services:
+  data-quality-app:
+    build:
+      context: .
+    image: ${DATA_QUALITY_IMAGE:-data-quality-monitor:local}
+    command:
+      [
+        "/bin/sh",
+        "-c",
+        "python src/main.py --input '${DQ_INPUT_PATH:-data/raw/psq_customer_base_v8_stress.csv}' --rules '${DQ_RULES_PATH:-config/rules.yml}' --output-dir '${DQ_OUTPUT_DIR:-reports/latest}' && python scripts/data/generate_psq_quality_ladder.py --input '${DQ_INPUT_PATH:-data/raw/psq_customer_base_v8_stress.csv}' --rules '${DQ_RULES_PATH:-config/rules.yml}' --data-output-dir reports/quality-ladder-data --report-output-root reports/quality-ladder"
+      ]
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./reports:/app/reports
+
+  dashboard:
+    image: ${DATA_QUALITY_IMAGE:-data-quality-monitor:local}
+    depends_on:
+      - data-quality-app
+    command:
+      [
+        "streamlit",
+        "run",
+        "dashboard/app.py",
+        "--server.address",
+        "0.0.0.0",
+        "--server.port",
+        "8501"
+      ]
+    volumes:
+      - ./reports:/app/reports
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
