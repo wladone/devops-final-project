@@ -174,8 +174,8 @@ Decided to deliver Kubernetes via GitOps even though Jenkins is already authenti
 - Drift detection comes for free
 - Separation: Jenkins builds; Argo CD deploys
 
-### Trivy and SonarQube advisory in the demo
-Local demo keeps both gates advisory (per `docs/ai-collaboration.md` rules) so the green path always completes. The architecture supports flipping them to blocking — it's a Jenkins parameter change, not a redesign.
+### Trivy and SonarQube as enforcing gates
+The demo runs with both gates **enforcing**: SonarQube's quality gate blocks on `qualitygate.wait=true` and Trivy fails the build on any HIGH/CRITICAL vulnerability. A single `.trivyignore` entry covers the upstream-unfixed `ncurses` CVE with a documented rationale. Builds turn red on real findings rather than being green-by-construction.
 
 ### YAML-declared rules
 Rules live in `config/rules.yml`, not Python code. Adding a new rule for a new column is a config-only change. Cost: rule expressivity is limited to what the validator implements (no arbitrary Python predicates).

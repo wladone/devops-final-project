@@ -17,7 +17,6 @@ build/
 jenkins/.env
 logs/
 # Local tooling caches and per-machine session state.
-.claude/
 .scannerwork/
 .playwright-cli/
 output/
