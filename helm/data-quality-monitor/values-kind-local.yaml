@@ -1,0 +1,32 @@
+image:
+  repository: localhost:5001/data-quality-monitor
+  tag: "latest"
+  pullPolicy: Always
+
+ingress:
+  enabled: false
+
+service:
+  type: ClusterIP
+  port: 8501
+
+dashboard:
+  # host.docker.internal routes from the kind pod back to the developer host
+  # where Jenkins, SonarQube, Argo CD, Grafana, Prometheus listen.
+  platformProbeHost: "host.docker.internal"
+
+runner:
+  schedule: "*/30 * * * *"
+
+autoscaling:
+  enabled: false
+
+persistence:
+  enabled: true
+  size: 1Gi
+
+monitoring:
+  prometheusRule:
+    enabled: false
+  grafanaDashboard:
+    enabled: false

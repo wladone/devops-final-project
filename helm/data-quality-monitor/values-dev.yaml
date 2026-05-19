@@ -1,0 +1,23 @@
+image:
+  tag: "dev"
+
+ingress:
+  enabled: true
+  hosts:
+    - host: dq-monitor-dev.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+runner:
+  schedule: "*/30 * * * *"
+
+autoscaling:
+  enabled: false
+
+monitoring:
+  targetNamespace: dq-monitor-dev
+  prometheusRule:
+    enabled: true
+  grafanaDashboard:
+    enabled: true

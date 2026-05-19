@@ -1,0 +1,154 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: data-quality-monitor
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 8501
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: data-quality.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+dashboard:
+  replicaCount: 1
+  # Hostname the dashboard uses when probing platform services (Jenkins, SonarQube, Argo CD, ...).
+  # In-cluster pods cannot reach the developer's localhost; on Docker Desktop / kind on Windows or
+  # macOS the kind-local values files set this to host.docker.internal so the K8s dashboard's
+  # platform-health card reaches services running on the host. Real clusters should leave this
+  # blank (default) so the in-code fallback resolves to localhost and the card stays off-piste
+  # rather than pointing at the wrong network namespace.
+  platformProbeHost: ""
+  extraEnv: []
+  reportsVolumePermissions:
+    enabled: true
+    image: busybox:1.36
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 50m
+        memory: 64Mi
+  podSecurityContext:
+    fsGroup: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+  startupProbe:
+    httpGet:
+      path: /
+      port: http
+    failureThreshold: 30
+    periodSeconds: 5
+    timeoutSeconds: 5
+
+runner:
+  schedule: "0 * * * *"
+  reportsVolumePermissions:
+    enabled: true
+    image: busybox:1.36
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 50m
+        memory: 64Mi
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  backoffLimit: 1
+  activeDeadlineSeconds: 600
+  restartPolicy: Never
+  podSecurityContext:
+    fsGroup: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 75
+
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  storageClass: ""
+
+config:
+  inputPath: /app/data/raw/psq_customer_base_v8_stress.csv
+  rulesPath: /app/config/rules.yml
+  outputPath: /app/reports/latest
+
+secret:
+  create: false
+  name: ""
+  stringData: {}
+
+monitoring:
+  targetNamespace: ""
+  prometheusRule:
+    enabled: false
+    namespace: monitoring
+  grafanaDashboard:
+    enabled: false
+    namespace: monitoring
+    folder: Data Quality
+    labels:
+      grafana_dashboard: "1"

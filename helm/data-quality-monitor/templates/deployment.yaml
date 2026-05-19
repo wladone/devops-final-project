@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "data-quality-monitor.fullname" . }}-dashboard
+  labels:
+    {{- include "data-quality-monitor.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.dashboard.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "data-quality-monitor.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: dashboard
+  template:
+    metadata:
+      labels:
+        {{- include "data-quality-monitor.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: dashboard
+    spec:
+      serviceAccountName: {{ include "data-quality-monitor.serviceAccountName" . }}
+      {{- with .Values.dashboard.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.dashboard.reportsVolumePermissions.enabled }}
+      initContainers:
+        - name: fix-reports-permissions
+          image: {{ .Values.dashboard.reportsVolumePermissions.image | quote }}
+          command:
+            - sh
+            - -c
+            - chown -R 1000:1000 /app/reports || true
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.dashboard.reportsVolumePermissions.resources | nindent 12 }}
+          volumeMounts:
+            - name: reports
+              mountPath: /app/reports
+      {{- end }}
+      containers:
+        - name: dashboard
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.dashboard.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          command:
+            - streamlit
+            - run
+            - dashboard/app.py
+            - --server.address
+            - 0.0.0.0
+            - --server.port
+            - "8501"
+          ports:
+            - name: http
+              containerPort: 8501
+              protocol: TCP
+          env:
+            - name: HOME
+              value: /tmp
+            - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+              value: "false"
+            {{- with .Values.dashboard.platformProbeHost }}
+            - name: DQ_PLATFORM_PROBE_HOST
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.dashboard.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.dashboard.resources | nindent 12 }}
+          {{- with .Values.dashboard.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.dashboard.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.dashboard.readinessProbe | nindent 12 }}
+          volumeMounts:
+            - name: reports
+              mountPath: /app/reports
+            - name: tmp
+              mountPath: /tmp
+          {{- if or .Values.secret.create .Values.secret.name }}
+          envFrom:
+            - secretRef:
+                name: {{ include "data-quality-monitor.secretName" . }}
+          {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: reports
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "data-quality-monitor.fullname" . }}-reports
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

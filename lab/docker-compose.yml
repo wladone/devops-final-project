@@ -1,0 +1,32 @@
+# Legacy bring-up for the local DevOps lab.
+# The active path is Terraform: see terraform/environments/lab/ and
+# scripts/lab/start.ps1. This compose file is kept as a one-shot fallback
+# (docker compose -f lab/docker-compose.yml up -d) and as documentation of
+# what Terraform creates.
+services:
+  registry:
+    image: registry:2
+    container_name: dq-lab-registry
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    ports:
+      - "5001:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+    restart: unless-stopped
+
+  linux-target:
+    build:
+      context: ./ansible-target
+    container_name: dq-lab-linux-target
+    hostname: dq-lab-linux-target
+    ports:
+      - "2222:22"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - target_app:/opt/data-quality-monitor
+    restart: unless-stopped
+
+volumes:
+  registry_data:
+  target_app:

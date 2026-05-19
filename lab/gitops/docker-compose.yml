@@ -1,0 +1,20 @@
+services:
+  git-daemon:
+    image: bitnami/git:latest
+    container_name: dq-gitops-git
+    entrypoint: ["git"]
+    command:
+      [
+        "daemon",
+        "--verbose",
+        "--export-all",
+        "--enable=receive-pack",
+        "--reuseaddr",
+        "--base-path=/srv/git",
+        "/srv/git"
+      ]
+    ports:
+      - "9418:9418"
+    volumes:
+      - ./repos:/srv/git
+    restart: unless-stopped

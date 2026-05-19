@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: data-quality-platform
+  namespace: argocd
+spec:
+  description: GitOps project for the Data Quality Monitoring platform
+  sourceRepos:
+    - https://github.com/your-org/data-quality-monitor.git
+    - git://gitops-repo.argocd.svc.cluster.local:9418/data-quality-monitor.git
+  destinations:
+    - namespace: dq-monitor-dev
+      server: https://kubernetes.default.svc
+    - namespace: dq-monitor-staging
+      server: https://kubernetes.default.svc
+    - namespace: dq-monitor-prod
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

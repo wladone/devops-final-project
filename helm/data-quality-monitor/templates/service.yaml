@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "data-quality-monitor.fullname" . }}-dashboard
+  labels:
+    {{- include "data-quality-monitor.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "data-quality-monitor.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard

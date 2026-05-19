@@ -1,0 +1,146 @@
+{
+  "title": "Data Quality Monitoring Operations",
+  "uid": "dq-observability-demo",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "type": "query",
+        "label": "Namespace",
+        "query": "label_values(kube_namespace_status_phase, namespace)",
+        "current": {
+          "selected": true,
+          "text": "dq-monitor-dev",
+          "value": "dq-monitor-dev"
+        },
+        "includeAll": false,
+        "refresh": 1
+      }
+    ]
+  },
+  "tags": [
+    "data-quality",
+    "devops-demo",
+    "kubernetes"
+  ],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "App Pods Running",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_status_phase{namespace=\"$namespace\",phase=\"Running\",pod=~\".*data-quality-monitor.*\"})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Dashboard Replicas Available",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(kube_deployment_status_replicas_available{namespace=\"$namespace\",deployment=~\".*data-quality-monitor.*-dashboard\"})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Kubernetes Jobs Succeeded",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(increase(kube_job_status_succeeded{namespace=\"$namespace\",job_name=~\".*data-quality-monitor.*\"}[6h]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Kubernetes Job Failures",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(increase(kube_job_status_failed{namespace=\"$namespace\",job_name=~\".*data-quality-monitor.*\"}[30m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pods Running By Pod",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_status_phase{namespace=\"$namespace\",phase=\"Running\",pod=~\".*data-quality-monitor.*\"}) by (pod)",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Container Restarts",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "targets": [
+        {
+          "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"$namespace\",pod=~\".*data-quality-monitor.*\"}[30m])) by (pod)",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU Usage By Pod",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"$namespace\",container!=\"\",pod=~\".*data-quality-monitor.*\"}[5m])) by (pod)",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory Working Set By Pod",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"$namespace\",container!=\"\",pod=~\".*data-quality-monitor.*\"}) by (pod)",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Runner Job Successes Over Time",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "targets": [
+        {
+          "expr": "sum(increase(kube_job_status_succeeded{namespace=\"$namespace\",job_name=~\".*data-quality-monitor.*-runner.*\"}[30m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Runner Job Failures Over Time",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "targets": [
+        {
+          "expr": "sum(increase(kube_job_status_failed{namespace=\"$namespace\",job_name=~\".*data-quality-monitor.*-runner.*\"}[30m]))",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

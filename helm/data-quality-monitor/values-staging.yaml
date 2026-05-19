@@ -1,0 +1,40 @@
+image:
+  tag: "staging"
+
+ingress:
+  enabled: true
+  hosts:
+    - host: dq-monitor-staging.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 2
+
+dashboard:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 384Mi
+    limits:
+      cpu: 750m
+      memory: 768Mi
+
+runner:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+monitoring:
+  targetNamespace: dq-monitor-staging
+  prometheusRule:
+    enabled: true
+  grafanaDashboard:
+    enabled: true

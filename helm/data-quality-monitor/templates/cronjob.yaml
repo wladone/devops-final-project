@@ -1,0 +1,105 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "data-quality-monitor.fullname" . }}-runner
+  labels:
+    {{- include "data-quality-monitor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.runner.schedule | quote }}
+  concurrencyPolicy: {{ .Values.runner.concurrencyPolicy }}
+  successfulJobsHistoryLimit: {{ .Values.runner.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.runner.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.runner.backoffLimit }}
+      activeDeadlineSeconds: {{ .Values.runner.activeDeadlineSeconds }}
+      template:
+        metadata:
+          labels:
+            {{- include "data-quality-monitor.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: runner
+        spec:
+          serviceAccountName: {{ include "data-quality-monitor.serviceAccountName" . }}
+          {{- with .Values.runner.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          restartPolicy: {{ .Values.runner.restartPolicy }}
+          {{- if .Values.runner.reportsVolumePermissions.enabled }}
+          initContainers:
+            - name: fix-reports-permissions
+              image: {{ .Values.runner.reportsVolumePermissions.image | quote }}
+              command:
+                - sh
+                - -c
+                - chown -R 1000:1000 /app/reports || true
+              securityContext:
+                runAsNonRoot: false
+                runAsUser: 0
+                runAsGroup: 0
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              resources:
+                {{- toYaml .Values.runner.reportsVolumePermissions.resources | nindent 16 }}
+              volumeMounts:
+                - name: reports
+                  mountPath: /app/reports
+          {{- end }}
+          containers:
+            - name: data-quality-runner
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              {{- with .Values.runner.securityContext }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              command:
+                - /bin/sh
+                - -c
+                - >-
+                  python src/main.py
+                  --input {{ .Values.config.inputPath | quote }}
+                  --rules {{ .Values.config.rulesPath | quote }}
+                  --output-dir {{ .Values.config.outputPath | quote }}
+                  &&
+                  python scripts/data/generate_psq_quality_ladder.py
+                  --input {{ .Values.config.inputPath | quote }}
+                  --rules {{ .Values.config.rulesPath | quote }}
+                  --data-output-dir /app/reports/quality-ladder-data
+                  --report-output-root /app/reports/quality-ladder
+              env:
+                - name: HOME
+                  value: /tmp
+              resources:
+                {{- toYaml .Values.runner.resources | nindent 16 }}
+              volumeMounts:
+                - name: reports
+                  mountPath: /app/reports
+                - name: rules
+                  mountPath: /app/config
+                - name: tmp
+                  mountPath: /tmp
+              {{- if or .Values.secret.create .Values.secret.name }}
+              envFrom:
+                - secretRef:
+                    name: {{ include "data-quality-monitor.secretName" . }}
+              {{- end }}
+          volumes:
+            - name: tmp
+              emptyDir: {}
+            - name: reports
+              {{- if .Values.persistence.enabled }}
+              persistentVolumeClaim:
+                claimName: {{ include "data-quality-monitor.fullname" . }}-reports
+              {{- else }}
+              emptyDir: {}
+              {{- end }}
+            - name: rules
+              configMap:
+                name: {{ include "data-quality-monitor.fullname" . }}-rules

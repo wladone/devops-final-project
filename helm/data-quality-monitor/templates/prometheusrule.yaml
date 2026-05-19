@@ -1,0 +1,50 @@
+{{- if .Values.monitoring.prometheusRule.enabled }}
+{{- $targetNamespace := .Values.monitoring.targetNamespace | default .Release.Namespace }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "data-quality-monitor.fullname" . }}-alerts
+  namespace: {{ .Values.monitoring.prometheusRule.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "data-quality-monitor.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: {{ include "data-quality-monitor.fullname" . }}.rules
+      rules:
+        - alert: DataQualityDashboardUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="{{ $targetNamespace }}",deployment=~".*{{ include "data-quality-monitor.fullname" . }}.*-dashboard"} < 1
+          for: 5m
+          labels:
+            severity: critical
+            service: data-quality-monitor
+          annotations:
+            summary: Dashboard deployment has no available replicas.
+            description: The dashboard is unavailable for more than 5 minutes.
+        - alert: DataQualityRunnerJobsFailing
+          expr: increase(kube_job_status_failed{namespace="{{ $targetNamespace }}",job_name=~".*{{ include "data-quality-monitor.fullname" . }}.*-runner.*"}[30m]) > 2
+          for: 5m
+          labels:
+            severity: warning
+            service: data-quality-monitor
+          annotations:
+            summary: Data quality batch jobs are failing.
+            description: More than two recent cronjob executions failed in the last 30 minutes.
+        - alert: DataQualityPodsRestarting
+          expr: increase(kube_pod_container_status_restarts_total{namespace="{{ $targetNamespace }}",pod=~".*{{ include "data-quality-monitor.fullname" . }}.*"}[30m]) > 4
+          for: 10m
+          labels:
+            severity: warning
+            service: data-quality-monitor
+          annotations:
+            summary: Containers are restarting too often.
+            description: More than four restarts were observed within 30 minutes.
+        - alert: DataQualityReportsVolumeFilling
+          expr: kubelet_volume_stats_used_bytes{namespace="{{ $targetNamespace }}",persistentvolumeclaim=~".*{{ include "data-quality-monitor.fullname" . }}.*reports.*"} / kubelet_volume_stats_capacity_bytes{namespace="{{ $targetNamespace }}",persistentvolumeclaim=~".*{{ include "data-quality-monitor.fullname" . }}.*reports.*"} > 0.9
+          for: 15m
+          labels:
+            severity: warning
+            service: data-quality-monitor
+          annotations:
+            summary: Data quality reports volume is almost full.
+            description: The reports PVC has been above 90 percent capacity for more than 15 minutes.
+{{- end }}

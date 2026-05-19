@@ -1,0 +1,44 @@
+image:
+  tag: "prod"
+  pullPolicy: Always
+
+ingress:
+  enabled: true
+  hosts:
+    - host: dq-monitor.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+dashboard:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+runner:
+  # Production checks run more frequently than dev/staging to catch data regressions sooner.
+  schedule: "*/15 * * * *"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+
+monitoring:
+  targetNamespace: dq-monitor-prod
+  prometheusRule:
+    enabled: true
+  grafanaDashboard:
+    enabled: true

@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: data-quality-monitor-prod
+  namespace: argocd
+spec:
+  project: data-quality-platform
+  source:
+    repoURL: https://github.com/your-org/data-quality-monitor.git
+    targetRevision: main
+    path: helm/data-quality-monitor
+    helm:
+      valueFiles:
+        - values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dq-monitor-prod
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
