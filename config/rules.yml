@@ -1,0 +1,83 @@
+dataset:
+  input_path: data/raw/psq_customer_base_v8_stress.csv
+  output_dir: reports/latest
+
+checks:
+  required_columns:
+    - source
+    - psq_entity_key
+    - id
+    - name
+    - vat_number
+    - kvk_number
+    - country
+    - last_trx_date
+    - activity_detail_status
+    - merchant_activity_status
+    - type_of_activity
+    - contracting_method
+    - legal_form
+    - mcc
+    - vintage_date
+    - contract_status
+    - active_contracts
+    - contract_category_descriptions
+  non_null_columns:
+    - source
+    - psq_entity_key
+    - id
+    - name
+    - country
+    - activity_detail_status
+    - merchant_activity_status
+    - type_of_activity
+    - contracting_method
+    - contract_status
+  unique_columns:
+    - psq_entity_key
+    - id
+  date_columns:
+    - last_trx_date
+    - vintage_date
+  allowed_values:
+    source:
+      - Way4
+      - PASS
+    country:
+      - NL
+      - BE
+      - FR
+      - LU
+      - ES
+      - DE
+      - GB
+      - AT
+    activity_detail_status:
+      - Active in last 12 months
+      - Inactive >12 months
+      - Never transacted
+    merchant_activity_status:
+      - Active
+      - Inactive
+    type_of_activity:
+      - CP
+      - CNP
+      - CP+CNP
+    contracting_method:
+      - F2F
+      - NF2F
+      - F2F+NF2F
+    contract_status:
+      - Active
+      - Cancelled
+      - ActiveBO
+      - Entered
+      - Terminated
+  null_thresholds:
+    last_trx_date: 0.60
+    mcc: 0.50
+    vintage_date: 0.40
+    legal_form: 0.98
+    vat_number: 0.01
+    kvk_number: 0.25
+    active_contracts: 0.85
