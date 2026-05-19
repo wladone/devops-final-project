@@ -1,0 +1,15 @@
+app_name: data-quality-monitor
+app_dir: /opt/data-quality-monitor
+# Replace with your real registry/repository before a production deploy.
+docker_image: your-registry/data-quality-monitor:latest
+# Default off so the playbook is safe to run against an arbitrary host that
+# already has Docker. Production / fresh-VM deploys flip this on via their own
+# inventory or group_vars (the lab inventory's [group:vars] section is at
+# lower precedence than group_vars/all.yml, so leaving the default at true
+# would mask the inventory override).
+docker_runtime_manage_engine: false
+docker_compose_command: docker compose
+dashboard_port: 8501
+dq_input_path: /app/data/raw/psq_customer_base_v8_stress.csv
+dq_rules_path: /app/config/rules.yml
+dq_output_path: /app/reports/latest

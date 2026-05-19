@@ -1,0 +1,7 @@
+- name: Deploy Data Quality Monitoring stack
+  hosts: data_quality_hosts
+  become: true
+  roles:
+    - docker_runtime
+    - app_deploy
+

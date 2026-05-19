@@ -1,0 +1,40 @@
+services:
+  data-quality-app:
+    image: ${DATA_QUALITY_IMAGE}
+    container_name: {{ app_name }}-runner
+    env_file:
+      - .env
+    command:
+      [
+        "/bin/sh",
+        "-c",
+        "python src/main.py --input '${DQ_INPUT_PATH}' --rules '${DQ_RULES_PATH}' --output-dir '${DQ_OUTPUT_DIR}' && python scripts/data/generate_psq_quality_ladder.py --input '${DQ_INPUT_PATH}' --rules '${DQ_RULES_PATH}' --data-output-dir /app/reports/quality-ladder-data --report-output-root /app/reports/quality-ladder"
+      ]
+    volumes:
+      - app-reports:/app/reports
+    restart: "no"
+
+  dashboard:
+    image: ${DATA_QUALITY_IMAGE}
+    container_name: {{ app_name }}-dashboard
+    env_file:
+      - .env
+    command:
+      [
+        "streamlit",
+        "run",
+        "dashboard/app.py",
+        "--server.address",
+        "0.0.0.0",
+        "--server.port",
+        "8501"
+      ]
+    volumes:
+      - app-reports:/app/reports
+    ports:
+      - "{{ dashboard_port }}:8501"
+    restart: unless-stopped
+
+volumes:
+  app-reports:
+    name: {{ app_name }}-reports
