@@ -1,0 +1,17 @@
+format: table
+exit-code: 1
+severity:
+  - HIGH
+  - CRITICAL
+ignore-unfixed: true
+scanners:
+  - vuln
+  - misconfig
+  - secret
+skip-dirs:
+  - .venv
+  - .tmp
+  - __pycache__
+  - reports/ci
+  - reports/latest
+timeout: 20m0s
