@@ -1,0 +1,80 @@
+{
+  "checks_failed": 7,
+  "checks_passed": 22,
+  "checks_total": 29,
+  "failed_checks": [
+    {
+      "check_name": "non_null",
+      "column_name": "band_id",
+      "failed_rows": 29,
+      "message": "Column 'band_id' contains 29 null values.",
+      "metric_value": 29,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "non_null",
+      "column_name": "species_common",
+      "failed_rows": 47,
+      "message": "Column 'species_common' contains 47 null values.",
+      "metric_value": 47,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "non_null",
+      "column_name": "flyway_region",
+      "failed_rows": 33,
+      "message": "Column 'flyway_region' contains 33 null values.",
+      "metric_value": 33,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "non_null",
+      "column_name": "band_status",
+      "failed_rows": 41,
+      "message": "Column 'band_status' contains 41 null values.",
+      "metric_value": 41,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "unique_key",
+      "column_name": "band_token",
+      "failed_rows": 327,
+      "message": "Column 'band_token' contains 327 duplicate rows.",
+      "metric_value": 327,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "unique_key",
+      "column_name": "band_id",
+      "failed_rows": 543,
+      "message": "Column 'band_id' contains 543 duplicate rows.",
+      "metric_value": 543,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "null_threshold",
+      "column_name": "permit_code",
+      "failed_rows": 84,
+      "message": "Column 'permit_code' exceeds the null threshold: 5.60% > 1.00%.",
+      "metric_value": 0.056,
+      "severity": "warning",
+      "status": "FAIL",
+      "threshold": 0.01
+    }
+  ],
+  "input_file": "rings_missing_critical.csv",
+  "quality_score": 75.86,
+  "row_count": 1500
+}

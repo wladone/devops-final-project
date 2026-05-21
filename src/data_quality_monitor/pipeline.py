@@ -35,7 +35,7 @@ def run_pipeline(
 
     resolved_output = Path(output_dir) if output_dir else config.dataset.output_dir
 
-    dataframe = load_dataset(resolved_input)
+    dataframe = load_dataset(resolved_input, dtypes=config.dataset.dtypes or None)
     results = run_validation_checks(dataframe, config.checks)
     report_frame = build_report_dataframe(results)
     summary = build_summary(results, resolved_input, row_count=len(dataframe))

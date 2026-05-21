@@ -1,0 +1,83 @@
+dataset:
+  input_path: tests/fixtures/sparrowhawk/rings_mixed_extreme.csv
+  output_dir: reports/sparrowhawk
+
+checks:
+  required_columns:
+    - ringing_scheme
+    - band_token
+    - band_id
+    - species_common
+    - permit_code
+    - bander_license
+    - flyway_region
+    - last_resight_date
+    - migration_status
+    - lifecycle_state
+    - habitat_class
+    - capture_method
+    - morph_variant
+    - taxon_code
+    - first_banded_date
+    - band_status
+    - active_resights
+    - observation_notes
+  non_null_columns:
+    - ringing_scheme
+    - band_token
+    - band_id
+    - species_common
+    - flyway_region
+    - migration_status
+    - lifecycle_state
+    - habitat_class
+    - capture_method
+    - band_status
+  unique_columns:
+    - band_token
+    - band_id
+  date_columns:
+    - last_resight_date
+    - first_banded_date
+  allowed_values:
+    ringing_scheme:
+      - Euring
+      - NABU
+    flyway_region:
+      - WEU
+      - EAA
+      - NAM
+      - EAF
+      - CAF
+      - BSM
+      - AWA
+      - NEO
+    migration_status:
+      - Resighted in last 12 months
+      - Lost contact >12 months
+      - Never resighted
+    lifecycle_state:
+      - Alive
+      - Recovered
+    habitat_class:
+      - WET
+      - TER
+      - WET+TER
+    capture_method:
+      - MIST
+      - TRAP
+      - MIST+TRAP
+    band_status:
+      - Active
+      - Replaced
+      - Recovered
+      - Issued
+      - Retired
+  null_thresholds:
+    last_resight_date: 0.60
+    taxon_code: 0.50
+    first_banded_date: 0.40
+    morph_variant: 0.98
+    permit_code: 0.01
+    bander_license: 0.25
+    active_resights: 0.85

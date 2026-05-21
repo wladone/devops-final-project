@@ -19,6 +19,8 @@ logs/
 # Local tooling caches and per-machine session state.
 .scannerwork/
 .playwright-cli/
+.claude/
+.hypothesis/
 output/
 reports/ci/
 reports/latest/
@@ -27,6 +29,9 @@ reports/stress-ci-check/
 reports/quality-ladder/
 reports/quality-ladder-data/
 reports/quality-ladder-ci-check/
+reports/run_*/
+reports/docker_*/
+reports/sparrowhawk_*/
 data/stress/
 data/processed/quality_ladder/
 lab/gitops/repos/

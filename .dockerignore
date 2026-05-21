@@ -9,6 +9,15 @@ __pycache__
 *.pyc
 *.pyo
 *.pyd
+# Secrets / credentials must never enter the image.
+.env
+.env.*
+!.env.example
+*.env
+.secrets
+credentials.json
+*.pem
+*.key
 data/stress
 data/processed/quality_ladder
 reports/latest

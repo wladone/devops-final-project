@@ -6,7 +6,8 @@ pipeline {
         string(name: 'INPUT_FILE', defaultValue: 'data/raw/psq_customer_base_v8_stress.csv', description: 'Input dataset path inside the repository')
         string(name: 'RULES_FILE', defaultValue: 'config/rules.yml', description: 'Rules YAML path inside the repository')
         string(name: 'OUTPUT_DIR', defaultValue: 'reports/ci', description: 'Directory for generated reports')
-        booleanParam(name: 'RUN_UNIT_TESTS', defaultValue: true, description: 'Run unit tests for the Python validation modules')
+        booleanParam(name: 'RUN_UNIT_TESTS', defaultValue: true, description: 'Run the full pytest suite (unit, property, integration, cli, security, chaos, infra) in parallel by marker')
+        booleanParam(name: 'RUN_PERF_BENCHMARKS', defaultValue: false, description: 'Run the perf-marked benchmarks and enforce the regression gate from tests/perf/baseline.json (set RUN_PERF=true in env to force on nightly schedule)')
         booleanParam(name: 'RUN_SONAR_SCAN', defaultValue: false, description: 'Run SonarQube analysis when the scanner and credentials are available')
         string(name: 'SONAR_HOST_URL', defaultValue: '', description: 'SonarQube or SonarQube Cloud URL')
         string(name: 'SONAR_TOKEN_CREDENTIALS_ID', defaultValue: '', description: 'Jenkins secret text credentials ID for the Sonar token')
@@ -148,18 +149,89 @@ pipeline {
             }
         }
 
-        stage('Unit Tests') {
+        stage('Test Suite') {
             when {
                 expression {
                     return params.RUN_UNIT_TESTS
                 }
             }
+            parallel {
+                stage('Unit + Property') {
+                    steps {
+                        sh '''
+                            cd "$PROJECT_DIR"
+                            source scripts/ci/bootstrap_python_env.sh
+                            python -m pytest -m "unit or property or not (unit or property or integration or cli or perf or security or infra or e2e or chaos)" \
+                              --cov=src --cov=dashboard --cov-report=xml:coverage.xml
+                        '''
+                    }
+                }
+                stage('Integration + Golden') {
+                    steps {
+                        sh '''
+                            cd "$PROJECT_DIR"
+                            source scripts/ci/bootstrap_python_env.sh
+                            python -m pytest -m integration -v
+                        '''
+                    }
+                }
+                stage('CLI Contract') {
+                    steps {
+                        sh '''
+                            cd "$PROJECT_DIR"
+                            source scripts/ci/bootstrap_python_env.sh
+                            python -m pytest -m cli -v
+                        '''
+                    }
+                }
+                stage('Security') {
+                    steps {
+                        sh '''
+                            cd "$PROJECT_DIR"
+                            source scripts/ci/bootstrap_python_env.sh
+                            python -m pytest -m security -v
+                        '''
+                    }
+                }
+                stage('Chaos') {
+                    steps {
+                        sh '''
+                            cd "$PROJECT_DIR"
+                            source scripts/ci/bootstrap_python_env.sh
+                            python -m pytest -m chaos -v
+                        '''
+                    }
+                }
+                stage('Infra Validation') {
+                    steps {
+                        sh '''
+                            cd "$PROJECT_DIR"
+                            source scripts/ci/bootstrap_python_env.sh
+                            python -m pytest -m infra -v
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Performance Benchmarks') {
+            when {
+                expression {
+                    return params.RUN_UNIT_TESTS && (env.RUN_PERF == 'true' || params.RUN_PERF_BENCHMARKS == true)
+                }
+            }
             steps {
                 sh '''
                     cd "$PROJECT_DIR"
-                    chmod +x scripts/ci/run_tests.sh
-                    ./scripts/ci/run_tests.sh
+                    source scripts/ci/bootstrap_python_env.sh
+                    python -m pytest -m perf -v --benchmark-disable-gc \
+                      --benchmark-json=reports/perf-${BUILD_NUMBER}.json
                 '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/perf-*.json', allowEmptyArchive: true
+                }
             }
         }
 

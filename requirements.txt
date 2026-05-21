@@ -3,6 +3,11 @@ openpyxl==3.1.5
 PyYAML==6.0.2
 # Streamlit 1.43 pinned Pillow<12 which kept CVE-2026-25990/40192/42311 alive.
 # 1.51 supports Pillow >=12.2, closing all three.
-streamlit==1.51.0
+# 1.57 lifts the `pyarrow<22` upper bound so we can pull in the CVE-2026-25087
+# fix (pyarrow >=23.0.1) without a resolver override.
+streamlit==1.57.0
 pillow>=12.2.0
+# pyarrow is pulled in transitively by streamlit; pinning explicitly to clear
+# CVE-2026-25087 (HIGH, CVSS 7.0 — affects >=15.0.0,<23.0.1).
+pyarrow>=23.0.1
 

@@ -1,0 +1,57 @@
+{
+  "seed": 20260521,
+  "columns": [
+    "ringing_scheme",
+    "band_token",
+    "band_id",
+    "species_common",
+    "permit_code",
+    "bander_license",
+    "flyway_region",
+    "last_resight_date",
+    "migration_status",
+    "lifecycle_state",
+    "habitat_class",
+    "capture_method",
+    "morph_variant",
+    "taxon_code",
+    "first_banded_date",
+    "band_status",
+    "active_resights",
+    "observation_notes"
+  ],
+  "scenarios": [
+    {
+      "name": "rings_control.csv",
+      "rows": 1000
+    },
+    {
+      "name": "rings_missing_critical.csv",
+      "rows": 1500
+    },
+    {
+      "name": "rings_duplicate_bands.csv",
+      "rows": 1575
+    },
+    {
+      "name": "rings_invalid_flyways.csv",
+      "rows": 1500
+    },
+    {
+      "name": "rings_invalid_dates.csv",
+      "rows": 1500
+    },
+    {
+      "name": "rings_null_breach.csv",
+      "rows": 2000
+    },
+    {
+      "name": "rings_large_volume.csv",
+      "rows": 60500
+    },
+    {
+      "name": "rings_mixed_extreme.csv",
+      "rows": 12100
+    }
+  ]
+}

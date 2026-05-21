@@ -1,0 +1,24 @@
+[run]
+# Track CLI / __main__ entry points that are exercised via subprocess
+# (e.g. by tests/cli/*) — without this, coverage.py only sees the parent
+# pytest process and reports cli.py / __main__.py as 0 %.
+parallel = True
+concurrency = multiprocessing,thread
+branch = True
+source =
+    src
+    dashboard
+
+[report]
+# Exclude generated noise and "unreachable" markers.
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    \.\.\.
+
+[paths]
+# Normalise tracked paths so subprocess + parent reports merge cleanly.
+source =
+    src
+    */src

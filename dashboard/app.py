@@ -713,8 +713,12 @@ def discover_runs() -> pd.DataFrame:
             {
                 "run_id": relative_run_id,
                 "label": f"{relative_run_id} | {generated_at.tz_convert(LOCAL_TIMEZONE).strftime('%d %b %Y %H:%M') if pd.notna(generated_at) else 'unknown time'}",
-                "summary_path": summary_path,
-                "report_path": report_dir / "quality_report.csv",
+                # Paths are stored as strings so the runs frame stays
+                # Arrow-serialisable (Streamlit renders dataframes via
+                # pyarrow, which cannot infer a column of Path objects).
+                # Consumers wrap them in Path(...) at the boundary.
+                "summary_path": str(summary_path),
+                "report_path": str(report_dir / "quality_report.csv"),
                 "generated_at": generated_at,
                 "row_count": summary.get("row_count", 0),
                 "checks_total": summary.get("checks_total", 0),
@@ -1784,9 +1788,9 @@ with st.sidebar:
             hide_index=True,
         )
 
-summary = load_summary(selected_run.summary_path)
-report = load_report(selected_run.report_path)
-artifacts = build_artifact_inventory(selected_run.summary_path.parent)
+summary = load_summary(Path(selected_run.summary_path))
+report = load_report(Path(selected_run.report_path))
+artifacts = build_artifact_inventory(Path(selected_run.summary_path).parent)
 capabilities = build_capability_table()
 remediation = build_remediation_plan(report)
 input_sample = load_input_sample(summary)

@@ -37,7 +37,9 @@ def write_summary(reports_dir: Path, run_id: str, payload: dict) -> Path:
 def make_app(reports_root: Path) -> AppTest:
     # The autouse _reports_root fixture sets DQ_REPORT_ROOT in the process env;
     # AppTest runs the script in-process so the dashboard inherits it.
-    return AppTest.from_file(str(DASHBOARD_APP), default_timeout=30)
+    # Streamlit's AppTest is slow to spin up (3–25 s in CI); 60 s gives enough
+    # headroom for the long-tail without masking real hangs.
+    return AppTest.from_file(str(DASHBOARD_APP), default_timeout=60)
 
 
 @pytest.fixture(autouse=True)

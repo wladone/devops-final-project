@@ -1,0 +1,30 @@
+{
+  "checks_failed": 2,
+  "checks_passed": 27,
+  "checks_total": 29,
+  "failed_checks": [
+    {
+      "check_name": "unique_key",
+      "column_name": "band_token",
+      "failed_rows": 194,
+      "message": "Column 'band_token' contains 194 duplicate rows.",
+      "metric_value": 194,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "unique_key",
+      "column_name": "band_id",
+      "failed_rows": 349,
+      "message": "Column 'band_id' contains 349 duplicate rows.",
+      "metric_value": 349,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    }
+  ],
+  "input_file": "rings_control.csv",
+  "quality_score": 93.1,
+  "row_count": 1000
+}

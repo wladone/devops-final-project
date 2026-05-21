@@ -1,0 +1,60 @@
+{
+  "checks_failed": 5,
+  "checks_passed": 24,
+  "checks_total": 29,
+  "failed_checks": [
+    {
+      "check_name": "unique_key",
+      "column_name": "band_token",
+      "failed_rows": 315,
+      "message": "Column 'band_token' contains 315 duplicate rows.",
+      "metric_value": 315,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "unique_key",
+      "column_name": "band_id",
+      "failed_rows": 546,
+      "message": "Column 'band_id' contains 546 duplicate rows.",
+      "metric_value": 546,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "valid_date",
+      "column_name": "last_resight_date",
+      "failed_rows": 132,
+      "message": "Column 'last_resight_date' contains 132 invalid date values.",
+      "metric_value": 132,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "valid_date",
+      "column_name": "first_banded_date",
+      "failed_rows": 118,
+      "message": "Column 'first_banded_date' contains 118 invalid date values.",
+      "metric_value": 118,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "null_threshold",
+      "column_name": "permit_code",
+      "failed_rows": 78,
+      "message": "Column 'permit_code' exceeds the null threshold: 5.20% > 1.00%.",
+      "metric_value": 0.052,
+      "severity": "warning",
+      "status": "FAIL",
+      "threshold": 0.01
+    }
+  ],
+  "input_file": "rings_invalid_dates.csv",
+  "quality_score": 82.76,
+  "row_count": 1500
+}

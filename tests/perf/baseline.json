@@ -1,0 +1,9 @@
+{
+  "_comment": "Reference wall-clock medians (seconds) for run_pipeline against each Sparrowhawk fixture. Updated by running: python -m tests.perf.update_baseline. Regressions > 25% above the baseline fail the perf gate.",
+  "tolerance_multiplier": 1.25,
+  "fixtures": {
+    "rings_control":        {"rows": 1000,  "median_seconds": 0.15},
+    "rings_mixed_extreme":  {"rows": 12100, "median_seconds": 0.30},
+    "rings_large_volume":   {"rows": 60500, "median_seconds": 1.50}
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "checks_failed": 4,
+  "checks_passed": 25,
+  "checks_total": 29,
+  "failed_checks": [
+    {
+      "check_name": "unique_key",
+      "column_name": "band_token",
+      "failed_rows": 324,
+      "message": "Column 'band_token' contains 324 duplicate rows.",
+      "metric_value": 324,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "unique_key",
+      "column_name": "band_id",
+      "failed_rows": 551,
+      "message": "Column 'band_id' contains 551 duplicate rows.",
+      "metric_value": 551,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "allowed_values",
+      "column_name": "flyway_region",
+      "failed_rows": 187,
+      "message": "Column 'flyway_region' contains 187 values outside: WEU, EAA, NAM, EAF, CAF, BSM, AWA, NEO.",
+      "metric_value": 187,
+      "severity": "warning",
+      "status": "FAIL",
+      "threshold": "WEU, EAA, NAM, EAF, CAF, BSM, AWA, NEO"
+    },
+    {
+      "check_name": "null_threshold",
+      "column_name": "permit_code",
+      "failed_rows": 64,
+      "message": "Column 'permit_code' exceeds the null threshold: 4.27% > 1.00%.",
+      "metric_value": 0.0427,
+      "severity": "warning",
+      "status": "FAIL",
+      "threshold": 0.01
+    }
+  ],
+  "input_file": "rings_invalid_flyways.csv",
+  "quality_score": 86.21,
+  "row_count": 1500
+}

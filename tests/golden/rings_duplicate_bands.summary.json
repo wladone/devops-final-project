@@ -1,0 +1,40 @@
+{
+  "checks_failed": 3,
+  "checks_passed": 26,
+  "checks_total": 29,
+  "failed_checks": [
+    {
+      "check_name": "unique_key",
+      "column_name": "band_token",
+      "failed_rows": 328,
+      "message": "Column 'band_token' contains 328 duplicate rows.",
+      "metric_value": 328,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "unique_key",
+      "column_name": "band_id",
+      "failed_rows": 557,
+      "message": "Column 'band_id' contains 557 duplicate rows.",
+      "metric_value": 557,
+      "severity": "critical",
+      "status": "FAIL",
+      "threshold": 0
+    },
+    {
+      "check_name": "null_threshold",
+      "column_name": "permit_code",
+      "failed_rows": 86,
+      "message": "Column 'permit_code' exceeds the null threshold: 5.46% > 1.00%.",
+      "metric_value": 0.0546,
+      "severity": "warning",
+      "status": "FAIL",
+      "threshold": 0.01
+    }
+  ],
+  "input_file": "rings_duplicate_bands.csv",
+  "quality_score": 89.66,
+  "row_count": 1575
+}
