@@ -33,6 +33,7 @@ reports/sql-sourced/
 reports/run_*/
 reports/docker_*/
 reports/sparrowhawk_*/
+reports/e2e/
 data/stress/
 data/processed/quality_ladder/
 data/processed/ricos/
