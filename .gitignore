@@ -29,11 +29,14 @@ reports/stress-ci-check/
 reports/quality-ladder/
 reports/quality-ladder-data/
 reports/quality-ladder-ci-check/
+reports/sql-sourced/
 reports/run_*/
 reports/docker_*/
 reports/sparrowhawk_*/
 data/stress/
 data/processed/quality_ladder/
+data/processed/ricos/
+data/db/
 lab/gitops/repos/
 .terraform/
 *.tfstate

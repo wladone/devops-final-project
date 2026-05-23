@@ -1712,6 +1712,176 @@ def _pick_notebook() -> Path | None:
     return notebooks[labels.index(chosen)]
 
 
+DB_PATH = ROOT_DIR / "data" / "db" / "dq.db"
+
+
+RISK_SEVERITY_ORDER = ["Low", "Medium", "High", "VeryHigh"]
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def load_ricos_tables() -> dict[str, pd.DataFrame | str | None]:
+    """Read every analytics_* output table from the SQL pipeline.
+
+    Returns empty frames when the DB file is absent so the panel can render a
+    friendly empty state instead of crashing.
+    """
+    if not DB_PATH.exists():
+        return {
+            "summary": pd.DataFrame(),
+            "rich": pd.DataFrame(),
+            "flag": pd.DataFrame(),
+            "generated_at": None,
+        }
+
+    import sqlite3
+
+    con = sqlite3.connect(f"file:{DB_PATH.as_posix()}?mode=ro", uri=True)
+    try:
+        summary = pd.read_sql_query(
+            "SELECT source, in_ricos_flag, merchants, active_merchants, pct_of_source "
+            "FROM analytics_psq_match_summary ORDER BY source, in_ricos_flag",
+            con,
+        )
+        rich = pd.read_sql_query(
+            "SELECT source, id, name, country, in_ricos_flag, ricos_risk_score, ricos_risk_label, "
+            "ricos_screening_status, ricos_watchlist_hit_pct, ricos_watchlist_list, "
+            "ricos_pep_hit_pct, ricos_ubo_count, ricos_si_count, ricos_next_review_date "
+            "FROM analytics_psq_with_ricos_rich",
+            con,
+        )
+        flag_counts = pd.read_sql_query(
+            "SELECT in_ricos_flag, COUNT(*) AS merchants FROM analytics_psq_with_ricos_flag "
+            "GROUP BY in_ricos_flag",
+            con,
+        )
+        generated_row = pd.read_sql_query(
+            "SELECT MAX(generated_at) AS generated_at FROM analytics_psq_match_summary",
+            con,
+        )
+    finally:
+        con.close()
+    generated_at = generated_row["generated_at"].iloc[0] if not generated_row.empty else None
+    return {"summary": summary, "rich": rich, "flag": flag_counts, "generated_at": generated_at}
+
+
+def render_ricos_panel() -> None:
+    st.subheader("RICOS Coverage")
+    st.caption(
+        "Live read from the SQL pipeline output tables (`analytics_psq_match_summary`, "
+        "`analytics_psq_with_ricos_rich`, `analytics_psq_with_ricos_flag`). Run "
+        "`python scripts/data/run_sql_pipeline.py --reset` to refresh."
+    )
+
+    tables = load_ricos_tables()
+    summary = tables["summary"]
+    rich = tables["rich"]
+    generated_at = tables.get("generated_at")
+
+    if summary.empty:
+        st.warning(
+            f"No SQL pipeline output found at `{DB_PATH.relative_to(ROOT_DIR).as_posix()}`. "
+            "Run `python scripts/data/run_sql_pipeline.py --reset` to generate it."
+        )
+        return
+
+    if generated_at:
+        ts = pd.to_datetime(generated_at, errors="coerce")
+        if pd.notna(ts):
+            st.caption(f"**SQL pipeline last ran:** {ts.strftime('%Y-%m-%d %H:%M')} UTC")
+        else:
+            st.caption(f"**SQL pipeline last ran:** {generated_at}")
+
+    total = int(rich.shape[0])
+    in_ricos = int((rich["in_ricos_flag"] == "Y").sum())
+    not_in_ricos = total - in_ricos
+    pct = (in_ricos / total * 100) if total else 0.0
+    matched = rich[rich["in_ricos_flag"] == "Y"]
+    high_risk = int(matched["ricos_risk_score"].isin(["High", "VeryHigh"]).sum())
+    watchlist_hits = int(matched["ricos_watchlist_hit_pct"].notna().sum())
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("Total merchants", f"{total:,}")
+    col2.metric("In RICOS (Y)", f"{in_ricos:,}", f"{pct:.1f}%")
+    col3.metric("Not in RICOS (N)", f"{not_in_ricos:,}", f"{100 - pct:.1f}%")
+    col4.metric("High / VeryHigh risk", f"{high_risk:,}")
+    col5.metric("Watchlist hits", f"{watchlist_hits:,}", help="Merchants with a non-null OFAC/EU/UN/World-Check hit %.")
+
+    st.markdown("#### Match rates by source")
+    st.caption("Notebook contract: WAY4 ~71.4%, PASS ~35.3%. Hit on every run.")
+    st.dataframe(summary, use_container_width=True, hide_index=True)
+
+    matched_only = summary[summary["in_ricos_flag"] == "Y"][["source", "pct_of_source"]]
+    match_chart = (
+        alt.Chart(matched_only)
+        .mark_bar()
+        .encode(
+            x=alt.X("source:N", title="Source", axis=alt.Axis(labelAngle=0)),
+            y=alt.Y(
+                "pct_of_source:Q",
+                title="% in RICOS",
+                scale=alt.Scale(domain=[0, 100]),
+            ),
+            tooltip=["source", alt.Tooltip("pct_of_source:Q", title="% in RICOS", format=".2f")],
+        )
+        .properties(height=200)
+    )
+    st.altair_chart(match_chart, use_container_width=True)
+
+    st.markdown("#### Risk distribution")
+    risk_counts = (
+        matched["ricos_risk_score"].value_counts().rename_axis("risk").reset_index(name="merchants")
+    )
+    # Sort by severity, not alphabetical.
+    risk_counts["risk"] = pd.Categorical(risk_counts["risk"], categories=RISK_SEVERITY_ORDER, ordered=True)
+    risk_counts = risk_counts.sort_values("risk").reset_index(drop=True)
+
+    risk_col_a, risk_col_b = st.columns([1, 1])
+    with risk_col_a:
+        st.dataframe(risk_counts, use_container_width=True, hide_index=True)
+    with risk_col_b:
+        risk_chart = (
+            alt.Chart(risk_counts.assign(risk=risk_counts["risk"].astype(str)))
+            .mark_bar()
+            .encode(
+                x=alt.X("risk:N", title="Risk class", sort=RISK_SEVERITY_ORDER, axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("merchants:Q", title="Merchants"),
+                tooltip=["risk", "merchants"],
+            )
+            .properties(height=240)
+        )
+        st.altair_chart(risk_chart, use_container_width=True)
+
+    st.markdown("#### Watchlist hits")
+    hits = (
+        matched[matched["ricos_watchlist_hit_pct"].notna()]
+        [["id", "name", "country", "ricos_risk_score", "ricos_watchlist_list", "ricos_watchlist_hit_pct"]]
+        .sort_values("ricos_watchlist_hit_pct", ascending=False)
+        .head(10)
+    )
+    if hits.empty:
+        st.info("No watchlist hits in the current run.")
+    else:
+        st.dataframe(hits, use_container_width=True, hide_index=True)
+
+    with st.expander("Drill down — filter by source / risk / in-RICOS", expanded=False):
+        source_filter = st.multiselect("Source", sorted(rich["source"].unique()), default=list(sorted(rich["source"].unique())))
+        risk_filter = st.multiselect(
+            "Risk", sorted(rich["ricos_risk_score"].dropna().unique()),
+            default=list(sorted(rich["ricos_risk_score"].dropna().unique())),
+        )
+        in_ricos_filter = st.radio("In RICOS", ["All", "Y", "N"], horizontal=True, index=0)
+
+        filtered = rich[rich["source"].isin(source_filter)]
+        if in_ricos_filter != "All":
+            filtered = filtered[filtered["in_ricos_flag"] == in_ricos_filter]
+        if risk_filter:
+            filtered = filtered[
+                filtered["ricos_risk_score"].isin(risk_filter) | filtered["ricos_risk_score"].isna()
+            ]
+        st.caption(f"{len(filtered):,} rows matching filters")
+        st.dataframe(filtered.head(500), use_container_width=True, hide_index=True)
+
+
 def render_notebook_panel() -> None:
     st.subheader("Source notebook")
     if nbformat is None:
@@ -1818,8 +1988,8 @@ with top_cols[4]:
 st.progress(min(max(score / 100.0, 0.0), 1.0), text=f"Current quality score: {score:.1f}%")
 st.caption(f"Selected run: `{selected_run.run_id}` generated on `{generated_local}`")
 
-overview_tab, issues_tab, data_browser_tab, pipeline_tab, artifacts_tab, platform_tab = st.tabs(
-    ["Overview", "Issues", "Data Browser", "Pipeline & Rules", "Artifacts", "DevOps Footprint"]
+overview_tab, issues_tab, data_browser_tab, ricos_tab, pipeline_tab, artifacts_tab, platform_tab = st.tabs(
+    ["Overview", "Issues", "Data Browser", "RICOS Coverage", "Pipeline & Rules", "Artifacts", "DevOps Footprint"]
 )
 
 with overview_tab:
@@ -1883,6 +2053,9 @@ with issues_tab:
 
 with data_browser_tab:
     render_data_browser_panel(summary, report, selected_run)
+
+with ricos_tab:
+    render_ricos_panel()
 
 with pipeline_tab:
     st.subheader("How the data is processed")
