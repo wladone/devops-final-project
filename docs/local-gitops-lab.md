@@ -11,12 +11,12 @@ This lab completes the Kubernetes side of the project on a real local cluster:
 
 Helpful scripts:
 
-- [install_host_tools.ps1](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/install_host_tools.ps1)
-- [create_cluster.ps1](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/kind/create_cluster.ps1)
-- [start.ps1](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/gitops/start.ps1)
-- [bootstrap_local_repo.ps1](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/gitops/bootstrap_local_repo.ps1)
-- [install_argocd.ps1](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/gitops/install_argocd.ps1)
-- [bootstrap_app.ps1](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/gitops/bootstrap_app.ps1)
+- [install_host_tools.ps1](scripts/install_host_tools.ps1)
+- [create_cluster.ps1](scripts/kind/create_cluster.ps1)
+- [start.ps1](scripts/gitops/start.ps1)
+- [bootstrap_local_repo.ps1](scripts/gitops/bootstrap_local_repo.ps1)
+- [install_argocd.ps1](scripts/gitops/install_argocd.ps1)
+- [bootstrap_app.ps1](scripts/gitops/bootstrap_app.ps1)
 
 Useful local URLs after bootstrap:
 

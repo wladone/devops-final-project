@@ -11,10 +11,10 @@ This repository now contains a runnable local backend lab for the classic delive
 
 ## Components
 
-- [lab/docker-compose.yml](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/lab/docker-compose.yml)
-- [lab/ansible/inventory.ini](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/lab/ansible/inventory.ini)
-- [scripts/lab/start.ps1](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/lab/start.ps1)
-- [scripts/lab/run_ansible_demo.ps1](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/lab/run_ansible_demo.ps1)
+- [lab/docker-compose.yml](lab/docker-compose.yml)
+- [lab/ansible/inventory.ini](lab/ansible/inventory.ini)
+- [scripts/lab/start.ps1](scripts/lab/start.ps1)
+- [scripts/lab/run_ansible_demo.ps1](scripts/lab/run_ansible_demo.ps1)
 
 ## What this proves
 

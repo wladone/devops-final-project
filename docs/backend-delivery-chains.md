@@ -16,7 +16,7 @@ For a fully local proof-of-concept, this repository now also includes a lab that
 
 - a local registry on `localhost:5001`
 - a Linux SSH target on `localhost:2222`
-- helper scripts under [scripts/lab](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/lab)
+- helper scripts under [scripts/lab](scripts/lab)
 
 ### What happens
 
@@ -41,7 +41,7 @@ For a fully local proof-of-concept, this repository now also includes a lab that
 - Registry username and password for the image push
 - SSH key for the Linux target host
 
-For the local lab, the inventory uses demo-only credentials stored in [lab/ansible/inventory.ini](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/lab/ansible/inventory.ini), so you can validate the chain before switching to a real VM.
+For the local lab, the inventory uses demo-only credentials stored in [lab/ansible/inventory.ini](lab/ansible/inventory.ini), so you can validate the chain before switching to a real VM.
 
 ## Flow 2: Jenkins -> image -> Git update -> Argo CD -> Kubernetes
 
@@ -66,9 +66,9 @@ For the local lab, the inventory uses demo-only credentials stored in [lab/ansib
 
 To make this path reproducible from the repo, use:
 
-- [scripts/kubernetes/render_env_stack.sh](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/kubernetes/render_env_stack.sh) for Helm rendering
-- [scripts/kubernetes/apply_argocd_apps.sh](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/kubernetes/apply_argocd_apps.sh) for Argo CD application bootstrap
-- [scripts/ci/run_terraform_validate.sh](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/scripts/ci/run_terraform_validate.sh) for Terraform validation
+- [scripts/kubernetes/render_env_stack.sh](scripts/kubernetes/render_env_stack.sh) for Helm rendering
+- [scripts/kubernetes/apply_argocd_apps.sh](scripts/kubernetes/apply_argocd_apps.sh) for Argo CD application bootstrap
+- [scripts/ci/run_terraform_validate.sh](scripts/ci/run_terraform_validate.sh) for Terraform validation
 
 ### Jenkins parameters
 

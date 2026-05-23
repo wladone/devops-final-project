@@ -4,7 +4,7 @@ Use this when you are ready to deploy the project to a real Ubuntu or Debian Lin
 
 ## 1. Update the inventory
 
-Edit [ansible/inventory.ini](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/ansible/inventory.ini) and replace the sample host with your server details.
+Edit [ansible/inventory.ini](ansible/inventory.ini) and replace the sample host with your server details.
 
 Example:
 
@@ -15,7 +15,7 @@ prod-linux ansible_host=203.0.113.10 ansible_user=ubuntu ansible_port=22
 
 ## 2. Set the Docker image you want to deploy
 
-Edit [ansible/group_vars/all.yml](C:/Users/vladp/OneDrive/Desktop/Ansible_Project/ansible/group_vars/all.yml).
+Edit [ansible/group_vars/all.yml](ansible/group_vars/all.yml).
 
 Minimum change:
 

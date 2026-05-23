@@ -6,6 +6,55 @@ A complete, end-to-end DevOps platform built around a single, realistic workload
 
 ---
 
+## For evaluators (received this as an archive)
+
+If you unzipped `data-quality-monitor.zip` from an email and want to see the project end-to-end:
+
+**Prerequisites on your machine**
+
+| Required | Why | Recommended |
+|---|---|---|
+| Docker Desktop (running) | Hosts the full demo stack (Jenkins, SonarQube, kind, registry, dashboard, Argo CD) | 4.x |
+| PowerShell | The `.\dq` entrypoint script | 5.1 on Windows / `pwsh` 7+ on macOS / Linux |
+| Python 3.12+ | Only needed for the "tests-only, no Docker" path | 3.12.x |
+| ~16 GB RAM, ~20 GB free disk | Ten containers + two kind nodes during the full demo | — |
+| Free ports: 8080, 9000, 3000, 9090, 18501, 28080, 28501, 5001 | Service endpoints | — |
+
+**Three ways to evaluate**
+
+```powershell
+# 1) Just run the pytest suite — no Docker, ~3 minutes
+.\scripts\check_prereqs.ps1
+.\scripts\setup_venv.ps1
+.\scripts\run_tests.ps1          # 152 tests should pass
+
+# 2) Run the SQL-backed end-to-end pipeline — no Docker, ~30 seconds
+$env:PYTHONPATH = "$PWD/src"
+python scripts/data/run_sql_pipeline.py --reset
+sqlite3 data/db/dq.db "SELECT * FROM analytics_psq_match_summary;"
+
+# 3) Bring up the full demo platform — needs Docker Desktop running, ~4 minutes
+.\dq up
+```
+
+After option (3), open these URLs (default login `admin / admin123!`):
+
+| Service | URL | What to look at |
+|---|---|---|
+| Streamlit dashboard (classic) | http://localhost:18501 | Overview tab for the score, **RICOS Coverage** tab for the SQL-backed analytics |
+| Streamlit dashboard (k8s) | http://localhost:28501 | Same app, deployed via Helm to a kind cluster |
+| Jenkins | http://localhost:8080 | The 17-stage `data-quality-monitor-demo-e2e` job |
+| Argo CD | https://127.0.0.1:28080 | GitOps reconciliation status |
+| Grafana | http://localhost:3000/d/dq-observability-demo/data-quality-monitoring-operations | 10-panel ops dashboard |
+| SonarQube | http://localhost:9000 | Code quality gate |
+| Prometheus | http://localhost:9090/targets | Metric scrape targets |
+
+**Where the interesting code lives** — `src/data_quality_monitor/` (the engine, including the SQL-backed pipeline introduced in this submission), `dashboard/app.py` (the Streamlit UI with the live RICOS Coverage tab), `Jenkinsfile` (17 parameterized stages), `helm/` + `argocd/` (the GitOps delivery chain), `ansible/playbook.yml` (the classic delivery chain).
+
+When you're done: `.\dq down` tears everything back down.
+
+---
+
 ## Quickstart
 
 The whole platform lives behind a single CLI wrapper. From a plain Windows terminal, no execution-policy setup needed:
@@ -146,7 +195,7 @@ Designed so every tool in the diagram earns its place:
 
 ## The data story
 
-The default workload is a PSQ customer-base v8 stress dataset extracted from `PSQ_customer_base_v8.ipynb`. Two demo modes go beyond a single validation run:
+The default workload is a PSQ customer-base v8 stress dataset. The dataset's lineage lives in [notebooks/PSQ_customer_base_v8_ricos_analysis.ipynb](notebooks/PSQ_customer_base_v8_ricos_analysis.ipynb) — that notebook is the **exploratory source** (RICOS analysis) that framed the schema and stress shapes; the **runtime engine** is the Python package in [src/data_quality_monitor/](src/data_quality_monitor), which is what Jenkins, Ansible, and Helm actually execute. The dashboard's *Notebook viewer* tab renders the `.ipynb` directly so the lineage stays visible alongside the live pipeline results. Two demo modes go beyond a single validation run:
 
 **Stress matrix** — same rules, eight scenarios: clean baseline, missing critical fields, duplicate business keys, invalid domains, invalid dates, null-threshold breaches, large volume, mixed extremes.
 
@@ -166,6 +215,50 @@ python scripts/data/generate_psq_quality_ladder.py --input data/raw/psq_customer
 ```
 
 Jenkins runs the same as the `Quality Improvement Ladder` stage in the full demo job.
+
+**RICOS analysis** — pandas port of cells 12-19 of the notebook. Reads the PSQ customer base CSV, generates a deterministic synthetic RICOS reference dataset, applies the same join-key transform the notebook uses (`P_M` + zero-padded merchant id), and writes four derived files to `data/processed/ricos/`:
+
+- `psq_with_ricos_flag.csv` — customer base + `in_ricos_flag` (Y/N) — mirrors the notebook's `projects.riskdatascience.psq_aml_with_ricosflag` table.
+- `psq_with_ricos_rich.csv` — customer base + 25 RICOS enrichment columns (identity, risk, screening, UBO/SI counts).
+- `psq_match_summary.csv` — match rates by source. Hits **WAY4 ~71% / PASS ~36%**, within ~1pp of the notebook's documented contract.
+- `ricos_lookup.csv` — the synthetic source data, for transparency.
+
+```powershell
+$env:PYTHONPATH = "$PWD/src"
+python scripts/data/run_ricos_analysis.py --input data/raw/psq_customer_base_v8.csv --output-dir data/processed/ricos
+```
+
+This is the layer that does what the notebook does — real input data flows through real Python code in [src/data_quality_monitor/ricos_analysis.py](src/data_quality_monitor/ricos_analysis.py) and produces real derived data. Locked in by [tests/test_ricos_analysis.py](tests/test_ricos_analysis.py) (deterministic seed, match-rate tolerance, join-key formula parity with the PySpark original).
+
+**SQL-backed pipeline (end-to-end)** — same engine, but reading from and writing to SQL tables instead of CSVs. Seven tables in a single SQLite database at `data/db/dq.db`:
+
+| Layer | Tables | What they hold |
+|---|---|---|
+| Source (engine reads) | `psq_customer_base` | 10,000 merchant rows from the customer base CSV. |
+| Source (engine reads) | `ricos_merchant_lookup`, `ricos_risk_results`, `ricos_ubo_links` | The three RICOS tables — split exactly like the notebook's `gwgkunde4400` / `presult4400` / `tbbo4400`. |
+| Output (engine writes) | `analytics_psq_with_ricos_flag` | Customer base + `in_ricos_flag` (Y/N). One row per merchant. |
+| Output (engine writes) | `analytics_psq_with_ricos_rich` | Customer base + all 25 RICOS enrichment columns. Mirrors notebook cell 19. |
+| Output (engine writes) | `analytics_psq_match_summary` | Per-source match-rate breakdown — what cell 15 prints. |
+
+```powershell
+$env:PYTHONPATH = "$PWD/src"
+python scripts/data/run_sql_pipeline.py --reset
+```
+
+The orchestrator creates schema, loads sources from the CSV + synthetic RICOS generator, runs the engine, then prints a sample SELECT from the output tables. Inspect any table directly:
+
+```powershell
+sqlite3 data/db/dq.db ".tables"
+sqlite3 data/db/dq.db "SELECT * FROM analytics_psq_match_summary;"
+```
+
+For a real database, set `DQ_DATABASE_URL=postgresql+psycopg2://user:pass@host/db` and the same code path runs against Postgres unchanged. The schema is defined in [src/data_quality_monitor/db_schema.py](src/data_quality_monitor/db_schema.py); the engine is in [src/data_quality_monitor/sql_pipeline.py](src/data_quality_monitor/sql_pipeline.py); tests covering the round-trip are in [tests/test_sql_pipeline.py](tests/test_sql_pipeline.py).
+
+Three follow-ups close the loop:
+
+- **Validator reads from SQL.** The standard quality validator can source its input from any pipeline table instead of a CSV: `python src/main.py --from-sql analytics_psq_with_ricos_flag --rules config/rules.yml --output-dir reports/sql-sourced`. Same rules, same reports, but proving quality on the freshly-engineered data rather than a static file. See [src/data_quality_monitor/data_loader.py](src/data_quality_monitor/data_loader.py)::`load_from_sql_table`.
+- **Jenkins runs the SQL pipeline on every CI build.** The `SQL Pipeline` stage in the [Jenkinsfile](Jenkinsfile) (between Quality Improvement Ladder and Helm validation) executes [scripts/ci/run_sql_pipeline.sh](scripts/ci/run_sql_pipeline.sh) and archives the SQLite file + a `match_summary.csv` so you can inspect the engine output from the Jenkins build page.
+- **Dashboard surfaces RICOS coverage live.** The Streamlit dashboard has a `RICOS Coverage` tab that queries the analytics tables directly: match-rate KPIs, risk distribution, watchlist hits, and a filterable drill-down. See `render_ricos_panel` in [dashboard/app.py](dashboard/app.py).
 
 ---
 
