@@ -345,6 +345,43 @@ pipeline {
             }
         }
 
+        stage('SQL Pipeline') {
+            when {
+                expression {
+                    return params.RUN_DATA_QUALITY_JOB
+                }
+            }
+            steps {
+                sh '''
+                    cd "$PROJECT_DIR"
+                    chmod +x scripts/ci/run_sql_pipeline.sh
+                    ./scripts/ci/run_sql_pipeline.sh \
+                      data/raw/psq_customer_base_v8.csv \
+                      data/db/dq.db
+                '''
+                sh '''
+                    rm -rf ci-sql-artifacts
+                    mkdir -p ci-sql-artifacts
+                    cp "$PROJECT_DIR/data/db/dq.db" ci-sql-artifacts/
+                    # Also export the match summary as a queryable CSV for the build dashboard.
+                    python - <<'PY'
+import sqlite3, csv
+con = sqlite3.connect("ci-sql-artifacts/dq.db")
+with open("ci-sql-artifacts/match_summary.csv", "w", newline="") as f:
+    w = csv.writer(f)
+    cur = con.execute("SELECT source, in_ricos_flag, merchants, active_merchants, pct_of_source FROM analytics_psq_match_summary ORDER BY source, in_ricos_flag")
+    w.writerow([c[0] for c in cur.description])
+    w.writerows(cur.fetchall())
+PY
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'ci-sql-artifacts/**/*', fingerprint: true
+                }
+            }
+        }
+
         stage('Helm Template Validation') {
             when {
                 expression {
