@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import random
 from datetime import date, timedelta
@@ -190,10 +191,26 @@ SCENARIOS = {
 }
 
 
+def _stable_seed(base_seed: int, scenario_name: str) -> int:
+    """Combine ``base_seed`` with the scenario name into a per-scenario RNG seed
+    that is deterministic across Python processes.
+
+    Using the built-in ``hash()`` is unsafe here: CPython's string hashing is
+    randomised by ``PYTHONHASHSEED`` (default: random salt per interpreter
+    startup), so ``hash("rings_control")`` returns a different integer on
+    every run.  ``hashlib.sha256`` gives a stable bit pattern that the
+    committed fixture CSVs and the golden baselines depend on.
+    """
+    digest = hashlib.sha256(scenario_name.encode("utf-8")).digest()
+    # Top 32 bits are plenty of entropy for ``random.Random`` and keep the
+    # seed printable when debugging.
+    return base_seed ^ int.from_bytes(digest[:4], "big")
+
+
 def build(output_dir: Path, seed: int) -> dict[str, int]:
     counts: dict[str, int] = {}
     for name, (fn, n) in SCENARIOS.items():
-        rng = random.Random(seed + hash(name) % 10_000)
+        rng = random.Random(_stable_seed(seed, name))
         rows = fn(rng, n)
         _write(output_dir / name, rows)
         counts[name] = len(rows)

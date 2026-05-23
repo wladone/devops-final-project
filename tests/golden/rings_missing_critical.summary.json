@@ -6,9 +6,9 @@
     {
       "check_name": "non_null",
       "column_name": "band_id",
-      "failed_rows": 29,
-      "message": "Column 'band_id' contains 29 null values.",
-      "metric_value": 29,
+      "failed_rows": 43,
+      "message": "Column 'band_id' contains 43 null values.",
+      "metric_value": 43,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -16,9 +16,9 @@
     {
       "check_name": "non_null",
       "column_name": "species_common",
-      "failed_rows": 47,
-      "message": "Column 'species_common' contains 47 null values.",
-      "metric_value": 47,
+      "failed_rows": 25,
+      "message": "Column 'species_common' contains 25 null values.",
+      "metric_value": 25,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -26,9 +26,9 @@
     {
       "check_name": "non_null",
       "column_name": "flyway_region",
-      "failed_rows": 33,
-      "message": "Column 'flyway_region' contains 33 null values.",
-      "metric_value": 33,
+      "failed_rows": 46,
+      "message": "Column 'flyway_region' contains 46 null values.",
+      "metric_value": 46,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -36,9 +36,9 @@
     {
       "check_name": "non_null",
       "column_name": "band_status",
-      "failed_rows": 41,
-      "message": "Column 'band_status' contains 41 null values.",
-      "metric_value": 41,
+      "failed_rows": 36,
+      "message": "Column 'band_status' contains 36 null values.",
+      "metric_value": 36,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -46,9 +46,9 @@
     {
       "check_name": "unique_key",
       "column_name": "band_token",
-      "failed_rows": 327,
-      "message": "Column 'band_token' contains 327 duplicate rows.",
-      "metric_value": 327,
+      "failed_rows": 311,
+      "message": "Column 'band_token' contains 311 duplicate rows.",
+      "metric_value": 311,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -56,9 +56,9 @@
     {
       "check_name": "unique_key",
       "column_name": "band_id",
-      "failed_rows": 543,
-      "message": "Column 'band_id' contains 543 duplicate rows.",
-      "metric_value": 543,
+      "failed_rows": 566,
+      "message": "Column 'band_id' contains 566 duplicate rows.",
+      "metric_value": 566,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -66,9 +66,9 @@
     {
       "check_name": "null_threshold",
       "column_name": "permit_code",
-      "failed_rows": 84,
-      "message": "Column 'permit_code' exceeds the null threshold: 5.60% > 1.00%.",
-      "metric_value": 0.056,
+      "failed_rows": 87,
+      "message": "Column 'permit_code' exceeds the null threshold: 5.80% > 1.00%.",
+      "metric_value": 0.058,
       "severity": "warning",
       "status": "FAIL",
       "threshold": 0.01

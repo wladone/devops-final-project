@@ -6,9 +6,9 @@
     {
       "check_name": "unique_key",
       "column_name": "band_token",
-      "failed_rows": 315,
-      "message": "Column 'band_token' contains 315 duplicate rows.",
-      "metric_value": 315,
+      "failed_rows": 333,
+      "message": "Column 'band_token' contains 333 duplicate rows.",
+      "metric_value": 333,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -16,9 +16,9 @@
     {
       "check_name": "unique_key",
       "column_name": "band_id",
-      "failed_rows": 546,
-      "message": "Column 'band_id' contains 546 duplicate rows.",
-      "metric_value": 546,
+      "failed_rows": 558,
+      "message": "Column 'band_id' contains 558 duplicate rows.",
+      "metric_value": 558,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -26,9 +26,9 @@
     {
       "check_name": "valid_date",
       "column_name": "last_resight_date",
-      "failed_rows": 132,
-      "message": "Column 'last_resight_date' contains 132 invalid date values.",
-      "metric_value": 132,
+      "failed_rows": 120,
+      "message": "Column 'last_resight_date' contains 120 invalid date values.",
+      "metric_value": 120,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -36,9 +36,9 @@
     {
       "check_name": "valid_date",
       "column_name": "first_banded_date",
-      "failed_rows": 118,
-      "message": "Column 'first_banded_date' contains 118 invalid date values.",
-      "metric_value": 118,
+      "failed_rows": 130,
+      "message": "Column 'first_banded_date' contains 130 invalid date values.",
+      "metric_value": 130,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -46,9 +46,9 @@
     {
       "check_name": "null_threshold",
       "column_name": "permit_code",
-      "failed_rows": 78,
-      "message": "Column 'permit_code' exceeds the null threshold: 5.20% > 1.00%.",
-      "metric_value": 0.052,
+      "failed_rows": 58,
+      "message": "Column 'permit_code' exceeds the null threshold: 3.87% > 1.00%.",
+      "metric_value": 0.0387,
       "severity": "warning",
       "status": "FAIL",
       "threshold": 0.01

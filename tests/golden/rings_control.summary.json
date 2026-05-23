@@ -6,9 +6,9 @@
     {
       "check_name": "unique_key",
       "column_name": "band_token",
-      "failed_rows": 194,
-      "message": "Column 'band_token' contains 194 duplicate rows.",
-      "metric_value": 194,
+      "failed_rows": 203,
+      "message": "Column 'band_token' contains 203 duplicate rows.",
+      "metric_value": 203,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -16,9 +16,9 @@
     {
       "check_name": "unique_key",
       "column_name": "band_id",
-      "failed_rows": 349,
-      "message": "Column 'band_id' contains 349 duplicate rows.",
-      "metric_value": 349,
+      "failed_rows": 352,
+      "message": "Column 'band_id' contains 352 duplicate rows.",
+      "metric_value": 352,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0

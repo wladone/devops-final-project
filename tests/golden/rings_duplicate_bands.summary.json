@@ -6,9 +6,9 @@
     {
       "check_name": "unique_key",
       "column_name": "band_token",
-      "failed_rows": 328,
-      "message": "Column 'band_token' contains 328 duplicate rows.",
-      "metric_value": 328,
+      "failed_rows": 339,
+      "message": "Column 'band_token' contains 339 duplicate rows.",
+      "metric_value": 339,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -16,9 +16,9 @@
     {
       "check_name": "unique_key",
       "column_name": "band_id",
-      "failed_rows": 557,
-      "message": "Column 'band_id' contains 557 duplicate rows.",
-      "metric_value": 557,
+      "failed_rows": 569,
+      "message": "Column 'band_id' contains 569 duplicate rows.",
+      "metric_value": 569,
       "severity": "critical",
       "status": "FAIL",
       "threshold": 0
@@ -26,9 +26,9 @@
     {
       "check_name": "null_threshold",
       "column_name": "permit_code",
-      "failed_rows": 86,
-      "message": "Column 'permit_code' exceeds the null threshold: 5.46% > 1.00%.",
-      "metric_value": 0.0546,
+      "failed_rows": 78,
+      "message": "Column 'permit_code' exceeds the null threshold: 4.95% > 1.00%.",
+      "metric_value": 0.0495,
       "severity": "warning",
       "status": "FAIL",
       "threshold": 0.01
